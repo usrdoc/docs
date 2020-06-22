@@ -1,0 +1,64 @@
+                                   RPC Howto
+
+Abstract
+
+This document elaborates an example provided in the rpcgen Programming Guide [1].
+
+
+The Program
+
+This is a trivial program which prints a message on the console of a remote
+machine, to do so the program calls a procedure on a remote machine. This
+example illustrates the process of writing a rpc program.
+
+The document [1] explains the details of the program. This document walks
+through the process of building the program and adds some missing details.
+
+Firstly, the XDR file. This program explains the skeleton of the remote
+procedure.
+
+/* BEGIN msg.x */
+
+program MESSAGEPROG {
+        version MESSAGEVERS {
+                int PRINTMESSAGE(string) = 1;
+        } = 1;
+} = 99;
+
+/* END msg.x */
+
+Compile the xdr program using the rpcgen program.
+
+localhost~$ rpcgen msg.x
+localhost~$
+
+The above program compiles msg.x and generates three files viz.
+msg.h, msg_clnt.c, msg_svc.c
+
+The msg_client.c and msg_svc.c provide the skeletons for the client and the
+server programs and the msg.h will have the function and variable definitions.
+Important ones to note is:
+
+#define PRINTMESSAGE 1
+extern  int * printmessage_1(char **, CLIENT *);
+extern  int * printmessage_1_svc(char **, struct svc_req *);
+
+printmessage_1 is implemented in the rpcgen generated file msg_clnt.c and is
+called in the client program that will be implemented by the programmer.
+
+printmessage_1_svc(char **, svc_req *) should be implemented by the programmer
+and linked with msg_svc, this comprises the server program.
+
+A slight change is needed to the example program msg_proc.c listed in [1], the
+function name and parameters should be:
+
+printmessage_1_svc(char **, struct svc_req *);
+
+than
+
+printmessage_1(msg)
+
+localhost~$ gcc rprintmsg.c msg_clnt.c -o rprintmsg  # compile the client
+localhost~$ gcc msg_proc.c msg_svc.c -o msg_server   # server
+
+[1] https://docs.freebsd.org/44doc/psd/22.rpcgen/paper.pdf

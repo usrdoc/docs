@@ -1,0 +1,114 @@
+Why XDR?
+
+Abstract: This document discusses the motivation behind the use of XDR in
+          network applications.
+
+Challenges In Exchanging Data Between Heterogeneous Networks
+     In a heterogeneous network, Exchanging binary data is tricky without
+     a standard data representation and the resulting data might be
+     inaccurate for the following reasons.
+     * The source and destination machines might be of different endianness.
+     * Machines might have different data alignment requirements.
+     * Different representation of floating point numbers.
+     * Different representation of more complex structures like linked
+       lists which contain pointers which are meaningless outside the
+       address space in which they were created.
+
+Endianness
+     Computer architectures (processors) represent multibyte scalar data in
+     memory in one of the two formats, big-endian or little-endian. In a
+     heterogeneous network, there might be instances where data is exchanged
+     between a big-endian and a little-endian machine. In such cases, the above
+     mentioned challenges will arise. Some architectures like ARM and PowerPC
+     support both big-endian and little-endian formats and are called bi-endian.
+
+     The need for endianness arise when it is necessary to treat multibyte
+     entity as a single data item with a single address.
+
+Big-Endian
+     In the big-endian representation, the multibyte scalar values are ordered
+     such that the most significant byte is stored in the lowest numeric byte
+     address. For example, 0x0F08132F is stored in big-endian format as:
+     -------------
+     |0F|08|13|2F|
+     -------------
+      80 81 82 83
+
+      IBM System/370, System/390, Motorola 680x0, Sun SPARC are some of the
+      architectures that are big-endian.
+
+Little-Endian
+     In the little-endian representation, the multibyte scalar values are
+     ordered such that the least significant byte is stored in the lowest
+     numeric byte address. For example 0x0F08132F is stored in little-endian
+     format as:
+     -------------
+     |2F|13|08|0F|
+     -------------
+      80 81 82 83
+
+      80x86, DEC VAX, DEC Alpha, AMD64 are some of the architectures which are
+      little-endian.
+
+Issues While Exchanging Binary Data Over Network
+     In a heterogeneous network when data is transferred from one type of
+     machine to another, without the conversion of data to local format the
+     individual bytes or bits within the multibyte scalar data is
+     meaningless. And if the programmer tries access the pointers within the
+     data, the result could be disastrous. Thus, one of the major overheads of
+     network software is portabiltiy. Writing different versions of software for
+     different architecture is costly, and maintenance of these different
+     versions is even more expensive.
+
+     Solution to this problem is to perform data conversion to an agreed data
+     format in both client and server software, to some machine independent
+     representation. Upon receiving data from the network, it is converted to
+     machine's native format. One end converts all the data from native format
+     to a standard format before transferring over the communication
+     channel. Other end, upon receiving the data converts from standard format
+     to the native format.
+
+Solutions For The Data Representation Problem
+     Of many solutions, couple of popular ones are:
+     1. DEC/RPC
+     2. XDR
+
+     In DEC/RPC which evolved from NCS (Network Computing System) RPC developed
+     by APOLLO Comp uses alternate coding to overcome the data representation
+     issues. Sometimes called `receiver-makes-it-right' because the sender uses
+     the native encoding style and the responsibility is on the reciever to
+     convert encoded data its own representation.
+     For example, Intel sends native little-endian, the reciever if it is
+     another Intel machine no change is needed. Else, if the receiver is a
+     big-endian machine the data is converted to big-endian.
+
+     Another popular solution for this problem is to perform data conversion to
+     an agreed data format in both client and server software, that is to some
+     standard machine independent representation. One end converts all the data
+     from native format to a standard format before transferring over the
+     communication channel. Other end upon receiving data from the network,
+     converts from standard format to the native format. The specification for
+     the standard is provided by XDR protocol.
+
+     The XDR (eXternal Data Representation), which was developed by Sun
+     Microsystems is a popular protocol for representing binary data intended to
+     be exchanged over heterogeneous network. XDR represents data in big-endian
+     format, which is converted to suitable format at the receiving end. On some
+     architectures like Intel which are little-endian this is an overhead since
+     it has to convert from one form to another.
+
+Conclusion
+     There are several advantages and disadvantages in using the standard
+     machine independent format. For example if the client and server machines
+     are of the same architecture the data converstion from native format to the
+     standard format and back is an added overhead. Also, the resulting data
+     might be larger due to additional metadata and word boundary alignments,
+     adding up to the data traffic. One of the advantage is that the clients and
+     servers need not know each other's native format, and new machine can be
+     added to the network without any changes to the existing software. The
+     advantages outweigh the disadvantages. Some of the popular network
+     filesystems like NFS, GlusterFS, ZFS, Firebird etc. use XDR.
+
+
+
+
