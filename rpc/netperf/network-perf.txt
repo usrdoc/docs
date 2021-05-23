@@ -1,0 +1,4 @@
+http://www.firewall.cx/networking-topics/general-networking/970-network-performance-testing.html
+https://www.dnsstuff.com/network-throughput-bandwidth
+https://en.wikipedia.org/wiki/Network_performance
+https://accedian.com/blog/measuring-network-performance-latency-throughput-packet-loss/
