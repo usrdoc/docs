@@ -1,0 +1,14 @@
+* How to measure the network performance?
+
+Indicators - Latency, Throughput
+
+Latency - (One way, round trip)
+   - Time taken to transmit a packet across the network.
+   - What impacts latency? (Any element in the chain?)
+
+Throughput - Quantity of data sent/received in a given time frame(?)
+
+Transferring files to test network speed is a bad idea. Why?
+
+
+https://fasterdata.es.net/performance-testing/network-troubleshooting-tools/iperf/disk-testing-using-iperf/

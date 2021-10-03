@@ -1,0 +1,194 @@
+                                        Introduction to TCP and UDP
+
+Overview
+  * Three-way handshake
+  * TCP's connection termination sequence
+  * TCP's TIME_WAIT state
+  * Buffering by the socket layer
+
+
+Why do we study the protocols when API is sufficient?
+  * To write better clients and servers.
+  * To debug efficiently.
+  * To learn what is handled by the protocol and to understand what should be
+    handled by the application.
+
+
+Key words and definitions
+  * IP/IPv4  Provides packet delivery service for TCP, UDP, SCTP, ICMP, IGMP
+
+  * IPv6     Provides the same service as IPv4 and has 128-bit addresses. (IGMP
+             is omitted)
+
+  * TCP      Transmission Control Protocol (Uses ipv6 or ipv4 for transport)
+             - Connection oriented protocol, provides reliable full-duplex by
+               stream to its users, takes care of:
+               > acknowledgements
+               > timeouts
+               > ordering messages and retransmissions
+
+  * UDP      User Datagram Protocol (Uses ipv6 or ipv4 for transport)
+             - Connectionless protocol
+             - No guarantee of delviery (no acks)
+
+  * ICMP     Internet Control Message Protocol
+             - Handles error and control information between routers and hosts
+             - These messages are normally generated and processed by the TCP/IP
+               networking software itself, not user processes.
+
+  * IGMP     Internet Group Management Protocol (exclusive to ipv4)
+             - Used with multicasting
+
+  * ARP      Address Resolution Protocol
+             - Maps ipv4 address to hardware address
+
+  * RARP     Reverse Address Resolution Protocol
+             - Maps hardware address to ipv4
+
+User Datagram Protocol
+
+  - A very simple transport layer protocol
+
+  - How does the data transfer happen?
+    * Application writes to UDP socket
+    * The data is encapsulated in a UDP datagram
+    * Further encapsulated in IP datagram and sent to destination
+
+  - There is no reliability of data delivery
+
+  - Each UDP datagram has a length (which is quite opposite to TCP where data is
+    passed in streams with no boundaries)
+
+  - What does it mean when we say UDP is "connectionless"?
+    * No long term relation between client and server
+    * A client can create a socket and send datagram to a given server and then
+      immediately send another datagram on the same socket to a different
+      server
+    * Similarly an UDP server can receive several datagrams on a single UDP
+      socket, each from a different client.
+
+Transmission Control Protocol
+
+  - TCP provides "connections": A client establishes "connection" communicates
+    then terminates the connection.
+  - Reliability:
+    * Sends data, waits for acknowledgement
+    * If not received, sends data again waits longer
+    * Gives up after a numerous tries, typically 4-10 minutes
+  - TCP estimates RTT (Round Trip Time) continuously
+  - TCP sequences the data and reorders them if the packets are out of order
+  - Detects and discards duplicates
+  - TCP connection is full duplex
+
+TCP Flow Control
+    TCP tells its peer how much data it can accept at any one time, this is
+    called advertised "window". And only this much data can be received, thus
+    the peer cannot overflow the receive buffer. This window size varies
+    depending on the data being currently handled. i.e it goes up when the
+    buffer is empty and comes down when the buffer has some data.
+
+
+TCP Connection Establishment and Termination
+
+    Three-way handshake (client SYN) -> (server ACK + SIN) -> (client ACK)
+
+    Steps: Passive Open, Active Open and SYN, Server ACK and SYN, Client ACK.
+
+    Passive Open: Server must be prepared to accept incoming connection. Usually
+                  done by the socket(2), bind(2), and listen(2) calls.
+
+    Active Open:  Client issues an active open by calling connect(2). This is
+                  the three-way handshake The
+                  following sequence of events happen when connect is called:
+
+                  > Client TCP sends a SYN segment, tells the server of client's
+                    initial sequence number. No data is sent with SYN but
+                    contains IP Header, TCP HEADER, TCP Options (if any).
+                  > Server ACK and SYN. Contains initial sequence number, both
+                    ACK and SYN go in single segment
+                  > Client ACK
+
+    TCP Options
+        - Each SYN contains TCP options (MSS Option, Window Scale, Timestamp)
+        - MSS (Max Segment Size) TCP_MAXSEG
+        - Window Scale: Max 65535 (SO_RCVBUF)
+                        65535 x 2^14 - The current max window is 1GB when the
+                                       window is scaled by 14 bits
+        - Timestamp: Needed for high speed connections to deal with stale data.
+
+
+Long Fat Pipe: Network with either a high bandwidth or a long dealy.
+
+TCP Connection Termination
+
+    TCP requires 3 segments to establish a connection and 4 segments to
+    terminate a connection.
+
+    1. Active Close: Application calls close(2) and the TCP sends a FIN segment.
+    2. Passive Close: Server receives FIN and performs "passive close". Received
+                      FIN is acknowledged by server TCP and sends an EOF to its
+                      application.
+    3. The application calls close(2) on socket upon receipt of EOF, this causes
+       the server TCP to send a FIN.
+    4. The client TCP that receives this final FIN acknowledges the FIN.
+
+    In the server side a close(2) can be called by the application in various
+    scenarios. For example when the application is killed by the user. When the
+    process terminates all open descriptors are closed which also causes the
+    server TCP to send a FIN.
+
+
+TIME_WAIT State
+
+    The end that performs an "active close" goes to this state.
+    * How long does it stay in this state?
+      2MSL (Maximum Segment Lifetime). And this time value is anywhere between
+      1 minute to 4 minutes, depending on the implementation. In some
+      implementations MSL is 30 seconds and in some it is 2 minutes.
+
+    Every datagram contains 8-bit hop limit, i.e 255 hops max.
+    Lost duplicate / wandering duplicate (?)
+
+    * Why should a TIME_WAIT state exist?
+      1. To implement TCP's full-duplicate connection termination reliably.
+      2. To allow old duplicate segments to expire in the network.
+
+
+Port Numbers (16 bit integers)
+    * Ephemeral Ports (Dynamic/Private Ports) are short lived ports
+      (49152-65535)
+    * Well known ports: 0-1023
+    * Registered ports: 1024-49151
+
+Why do we need port numbers?
+    There can be different TCP applications (for eg. http, echo, ssh ...),
+    how to differentiate them? Or which one to connect? Port numbers helps
+    to differentiate.
+
+
+Socket Pair
+
+    For TCP, the 4-tuple <local-ip, local-port, foreign-ip, foreign-port> helps
+    uniquely identify every TCP connection on a network.
+
+    Each endpoint is identified by two values <ip-addr, port> this is often
+    called a socket.
+
+    Though UDP is connectionless, we can extend the same concept to UDP.
+
+
+TCP Port Numbers and Concurrent Servers
+
+    What happens when the process spawns a child to handle a request and it
+    holds the well-known port for a long time?
+
+    Since the ephemeral ports are different the connection is uniquely
+    identified.
+
+    For example:
+    1. Client <x.x.1.3:1500, x.x.1.1:21>  --> Server <x.x.1.1:21, x.x.1.3:1500>
+
+       Add another connection and we have:
+
+       Client <x.x.1.3:1500, x.x.1.1:21>  --> Server <x.x.1.1:21, x.x.1.3:1500>
+       Client <x.x.1.3:1501, x.x.1.1:21>  --> Server <x.x.1.1:21, x.x.1.3:1501>

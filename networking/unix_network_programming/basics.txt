@@ -1,0 +1,47 @@
+A very basic network program connects to a server port and reads/writes some
+data. For example a client connects to port 13 (daytime service) and reads the
+data.
+
+The program that connects and reads the data (client)  performs the following
+steps:
+    a. Create a tcp socket -- socket(2)
+    b. Zero the sockaddr structure
+    c. Populate the sockaddr structure
+       1. sin_family (AF_INET/AF_INET6)
+       2. sin_port (htons(3) - host to network short)
+       3. remote host (inet_pton(3) - presentation to numberic)
+       4. connect(2) to the server
+       5. read(2) and print the data
+
+
+The above example connects to the daytime service listening on port 13. However,
+we can write our own server which sends the current time to the client.
+
+The server is slightly different from the client:
+
+    a. Create a tcp socket -- socket(2)
+    b. Add a port to sockaddr structure (Can be 13 or anything above 1024)
+    c. bind(2) the fd created by the stocket(2) call to the socket
+    d. Add interface (IPADDR_ANY -- i.e to connect to any interface)
+    e. Convert the socket to be a listening socket and specify a queue length --
+       listen(2)
+    f. accept(2) the connections
+    g. Send reply
+
+
+With raw sockets we can bypass the transport layer.
+
+Network Layer   - ipv4 and ipv6.
+Transport Layer - TCP and UDP.
+
+The upper three layers (application, presentation, session) communicate with the
+lower layers using the Socket API.
+
+Can we bypass the network layer and read directly from datalink layer frames?
+
+The upper three layers are part of the user process and lower layers are
+implemented in the kernel.
+
+
+
+
