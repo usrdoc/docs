@@ -1,0 +1,153 @@
+                                        Introduction to Sockets
+
+The functions that the socket address structure from the process to the kernel
+    1. bind(2)
+    2. connect(2)
+    3. sendto(2)
+    4. sendmsg(2)
+
+The functions that pass socket address structure from kernel to the process:
+    1. accept(2)        4. getpeername(2)
+    2. recvfrom(2)      5. getsockname(2)
+    3. recvmsg(2)
+
+
+A short note on sockaddr_in
+---------------------------
+
+struct in_addr {
+       in_addr_t    s_addr;         /* 32 bit IPv4 address */
+};
+
+struct sockaddr_in {
+       unit8_t         sin_len;     /* Structure length */
+       sa_family_t     sin_family;  /* AF_INET */
+       in_port_t       sin_port;    /* 16 bit TCP/UDP port */
+                                    /* Network byte ordered */
+       struct in_addr  sin_addr;    /* 32 bit IPv4 address */
+                                    /* Network byte ordered */
+       char            sin_zero[8]; /* Padding */
+};
+
+        Notes on the structure members
+
+  * The sin_len was added to the structure in 4.3BSD-Reno release. Not all
+    implementations support the sin_len field. It is not typically handled by
+    the applications, kernel internally uses the len field.
+  * sin_family (AF_INET for eg): This field was historically unsigned short, but
+    it is any unsigned it.
+  * The POSIX standard requires only sin_family, sin_addr, and sin_port.
+  * sin_zero is added for padding, to make the structure 16 bytes in size.
+  * sin_addr (in_addr) - unsigned int (32 bits)
+    sin_port           - unsigned int (32 bits)
+    sin_family         - any unsigned int (8/16 bits depending on the machine)
+  * The 32 bit ip address can be accessed in two different ways:
+    - serv.sin_addr         - struct in_addr
+    - serv.sin_addr.s_addr  - unsigned int
+
+
+* Why is sin_addr a structure not just in_addr_t (unsigned int)?
+  - For historical reasons. Early releases (4.2BSD) defined the in_addr
+    structure as an union of various structures, to allow access to each of 4
+    bytes in an ip address and also to 16-bit values contained within 32-bit
+    ipv4 address.
+    This was during the times of the classful states (A, B, C). After the
+    disappearance of the classful addresses the union disappeared and was left
+    with in_addr_t within in_addr structure.
+
+NOTE: Socket address structures are never communicated between different hosts
+      but always used within the host. Only certain fields of the structure are
+      communicated across the wire.
+
+Generic Socket Address Structure
+--------------------------------
+Socket address structures are always passed by reference when passed as
+arguments. And the many socket functions that take this parameter deals with
+different socket families, so how does it differentiate? More specifically the
+problem is, how to declare the type of pointer? With ANSI C, it is easy, we use
+void *. But socket functions predate the ANSI C, hence the solution chosen was
+to declare a generic socket structure and use that pointer as reference.
+
+Types of Sockets
+  * IPv4, IPv6, Unix Domain, Datalink, Storage sockets ...
+
+
+Functions passing socket address structure to kernel
+  * bind(2), connect(2), sendto(2)
+
+Fuctions passing socket address structure from kerne to user process
+  * accept(2), recvfrom(2), getsockname(2), getpeername(2)
+
+Network Byte Order
+  * For the sake of interoperability between different endian machines.
+  * Functions dealing with this: htons(), htonl(), ntohs(), ntohl()
+    inet_aton() - ascii to network
+    inet_ntoa() - network to ascii
+    inet_pton() - presentation to network
+    inet_ntop() - network to presentation
+
+
+Elementary TCP Socket Functions
+-------------------------------
+socket() - specify the type of protocol (SOCK_STREAM, _DGRAM, _SEQPACKET, _RAW)
+         - Call returns a socket fd.
+
+connect(2) - (Called by the client)
+             In the socket pair ephemeral port and src-ip is chosen by the
+             kernel.
+           - The connect(2) function initiates the 3-way handshake.
+           - Some of the error generated are:
+             SYN -- ETIMEDOUT
+                    RST (reset)     Hard error
+                    ECONNREFUSED
+
+                    Dest unreachable (Soft errors)
+                    EHOSTUNREACH
+                    ENETUNREACH
+
+bind(2) - Assigns a local portocol address to a socket <ipaddr, port> pair.
+          The servers usually specify their port numbers (since they are well
+          known ports). However, there are exceptions, in case of RPC, it lets
+          the kernel to choose the port.
+
+          A process (client/server) can bind a specific ip address to its
+          socket. IP must belong to an interface of the host.
+          A client usually does not specify the ip address to bind, it is done
+          by the kernel.
+          If a TCP server does not bind an ip address to its socket, kernel uses
+          the destination ip address of the client's SYN as servers source ip.
+
+listen(2) - Called by the TCP server. Should be called before the accept(2) call.
+            * Converts the unconnected stocket to a passive socket.
+            * Moves the socket from CLOSED state to LISTEN state.
+            * Specifies the max no. of connections the kernel should queue for
+              this socket.
+            * For a given listening socket kernel maintains two queues
+              Incomplete connection queue: (SYN_RCVD) server is waiting for
+                                           3-way handshake to complete.
+              Completed connection queue: Handshake completed (ESTABLISHED)
+              (Sum of both the queues cannot exceed the backlog)
+
+            SYN Flooding attack - Send a large amounts of SYN packets to the
+                                  server.
+            IP Spoofing  - Set the source ip of the SYN to a random number.
+                           Because of this, the server's SYN/ACK goes nowhere.
+
+accept(2) - Returns the next completed connection from the front of the
+            completed connection queue. Listening socket, the socket used for
+            bind and listen, this is for the the lifetime of the serer. Upon
+            accept(2) we create a connected socket, which lasts until the client
+            is served, upon that this socket is closed and recycled.
+            If we are not bothered about the client's identity the second and
+            the third argument to the function can be set to NULL.
+
+getsockname(2) - Local protocol address associated with the socket. The
+                 <ip, port> is assigned by the kernel which is returned by
+                 getsockname.
+
+getpeername(2) - Foreign protocol address associated with the socket.
+
+
+
+
+
