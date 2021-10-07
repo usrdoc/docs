@@ -1,0 +1,19 @@
+1. What are different file types in Unix?
+    - Regular file
+    - Directory
+    - FIFO
+    - Character Special
+    - Block Special
+    - Symbolic link
+    - Hard link (There is no difference between a regular file and hardlink)
+    - Socket
+
+2. What happens when a hard link is created for a symbolic link?
+   Another file(symlink) is created with link count set to 2. And the old
+   symlink's link count will be set to 2 as well.
+
+3. How many hard links can be created for a file in a given directory?
+   Linux uses unsigned int 32 to store the number of links. So it is 2^32 - 1
+   files. Or the number of directory entries a directory supports?
+
+4. 
