@@ -1,0 +1,32 @@
+			    Server Binding
+
+In conventional clilient/server programming we bind to a prot and
+client connects to the port. In case of RPC it works slightly
+differently:
+   * Server registers itself to portmapper (now rpcbind, port 111)
+   * Client gets the server's ephemeral port from portmapper
+
+The above steps happens transparently.
+
+RPC assigns an ephemeral port to the server and registers this port
+with portmapper.
+
+The Client/Server Communication Cycle:
+   * portmap(rpcbind) is started during system startup.
+   * When server is run, server stub calls svc_create()
+     # Creates transport endpoint (for eg. socket) for each protocol
+       in the system.
+     # binds the ephemeral ports to the endpoints
+     # Contacts local portmapper and registers TCP and UDP ephemeral
+       port numbers with RPC program number and version numbers
+          - 3 versions
+	    ~ v2 (Historical portmapper just tcp and udp)
+	    ~ v3 and v4 (Newer rpcbind protocols)
+     # Server goes to sleep after registering the ephemeral port with
+       rpcbind
+     # When client is run, it calls clnt_create()
+       - This starts the tcp 3-way handshake
+     # Client requests server's port number, and this is saved for all
+       future calls
+
+
