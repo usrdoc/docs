@@ -1,0 +1,37 @@
+                                I/O Multiplexing
+
+I/O Multiplexing is the capability to tell the kernel that we want to be
+                 notified if one or more I/O conditions are ready (i.e input is
+                 ready to be read or descriptor capable of taking more output).
+
+                 I/O multiplexing is provided by select() and poll()
+
+I/O Models Under UNIX
+    * Blocking I/O      (By default all sockets are blocking)
+    * Non-blocking I/O  (Polling, call recvfrom in a loop)
+    * I/O multiplexing (select and poll) [select -> ready -> recvfrom]
+    * Signal driven I/O (SIGIO)
+    * Async I/O
+
+
+Synchronous vs Asynchronous I/O
+
+   sync  - requesting process is blocked
+   async - requesting process is not blocked
+
+The select() function
+
+   This function allows the process to instruct the kernel to wait for any one
+   of the multiple events to occur and wake up the process only when one or more
+   of these events occur or when a specified amount of time has passed.
+   For eg: Tell the kernel to return only when:
+       * Any of the descriptors {1, 4, 5} are ready for reading
+       * Any of the descriptors {2, 6} are ready for writing
+       * Any of the descriptors {1, 4} have an exception condition pending
+       * 10.5 seconds have elapsed
+
+   We tell the kernel what descriptors we are interested in:
+      * reading
+      * writing
+      * exception condition
+      * How long to wait

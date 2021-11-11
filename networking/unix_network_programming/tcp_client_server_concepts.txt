@@ -1,0 +1,101 @@
+                                        TCP Client/Server Concepts
+
+Consider an "echo server" which echos everything the client throws at it. i.e
+  * A client reads a line from the commandline and sends it to the server.
+  * The server reads the line and writes it back to client.
+
+# What happens when the TCP server is run?
+  It makes the following system calls: socket(), bind(), listen(), and accept()
+
+  Upon the accept() call the server blocks, waiting for a connection.
+  `netstat -a' shows the connection status, before the client initiates a
+  connection the server is in LISTEN state.
+
+# What happens when a client is run?
+  The client calls socket(), inet_pton(), connect()
+
+  The connect() call initiates the 3-way handshake. Upon the successful
+  3-way handshake, connect() returns in the client and accept() returns in the
+  server. The connection is established.
+
+Termination
+-----------
+At the server side when the child exits SIGCHILD is sent and default behaviour
+is to ignore the signal (if not handled), the child goest to zombie (Z) state.
+
+
+POSIX Signal Handling
+---------------------
+
+A signal is a notification to a process that an event has occured. Signals are
+also called soft interrupts.
+
+A signal happens asynchronously, i.e a process does not know in advance when a
+signal will be received.
+
+Who can send a signal?
+  * A process can send a signal to another process and also between itself.
+  * The kernel to a user process.
+
+
+For eg. SIGCHILD is sent from the kernel to the process when one of the child of
+the process dies.
+
+Every signal has a disposition (action associated with the signal).
+
+How to set the disposition?
+    By calling the sigaction syscall.
+
+There are three choices for a disposition:
+    1. Catching the signal
+    2. Ignoring the signal
+    3. Setting a default action (usually it is to terminate the process)
+
+1. Catching the signal
+   Whenever a particular signal occurs, we can catch the signal and provide a
+   function that is called. This function is called "signal handler". SIGKILL(9)
+   and SIGSTOP(15) cannot be caught.
+   Signature:
+      void handler_funcname(int signo);
+
+2. Ignoring the signal
+   To ignore a signal set its disposition to SIG_IGN. SIGKILL and SIGSTOP cannot
+   be ignored.
+
+3. Default disposition
+   Default disposition for a signal can be set by SIG_DFL. Usually it is to
+   terminate a process or to generate a core. But some singals like SIGCHLD and
+   SIGURG have their default desposition set to ignore.
+
+
+* POSIX way to establish the disposition of a signal is to call sigaction(2).
+* Much easier and non-POSIX way is to call signal(2).
+
+* What is the purpose of zombie state?
+  Is to maintain information about the child, and to be fetched if required at a
+  later time.
+  Information can be: PID, Termination Status, Resource Utilisation (CPU,
+  Memory, etc...)
+
+* Why handle zombiles?
+  - They take kernel space, do not free up PIDs, ... we will eventually run out
+    of process IDs and fork() fails. In other words new processes cannot be
+    created.
+  - We must "wait(2)" for them and return thus preventing them from becoming
+    zombies.
+  - To do this we establish a signal handler.
+
+
+wait(2) and waitpid(2) functions
+--------------------------------
+wait(2)    - blocks until the child terminates.
+waitpid(2) - gives more control and can be told not to block (?)
+
+There are three scenarios to consider while writing network programs
+
+a. Wait and catch SIGCHLD when the child dies.
+b. Handle interrupted syscalls.
+c. A SIGCHLD condition should be handled properly.
+
+
+
