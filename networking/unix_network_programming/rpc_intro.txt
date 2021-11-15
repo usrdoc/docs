@@ -1,0 +1,129 @@
+                                   RPC Intro
+
+RPC uses a request-reply communication model. The client procedure sends
+messages to the server procedure and the server procedure returns the reply
+messages.
+
+The client and server procedures communicate by means of to stubs, client-stub
+and the server-stub.
+
+stub - Communication interface that implements RPC protocol and specifies how
+       messages are constructed and exchanged. i.e does the marshalling and
+       unmarshalling of the data.
+
+In a nutshell the client makes a local call to a function in its stub, which in
+turn takes care of network communication with the server stub and vice versa.
+
+What makes this more special is that the communication is machine
+independent. i.e data is represented in a machine indepent format using XDR.
+
+To develop an RPC application:
+
+1. Specify the protocol for client/server communication.
+2. Develop the client/server programs.
+
+Steps behind a RPC
+------------------
+The server must register itself with the portmapper, making itself available
+over the network.
+
+The RPC system is checking for requests within the dispatcher, prepared to
+invoke your procedure if a client requests it.
+
+The client calls a highlevel funcion, callrpc() to do two things:
+    i. locate the server procedure
+    ii. call the remote procedure
+
+
+Defining the Protocol
+---------------------
+To define a protocol for the application we have to:
+   i. Specify data types passed between the procedures
+   ii. Identify the remote procedure or service
+
+Program, Procedure, and Version Numbers
+---------------------------------------
+* A server should know the logical address where it should register itself.
+* A client needs to know where to look for the server.
+* A client and server must agree ahead of time on what logical address they will
+  use.
+
+The server code must register program, version, and procedure numbers with
+registerrpc().
+
+The portmapper/rpcbind advertises the program and version availability of the
+RPC address, sending interested clients the necessary address information.
+
+The portmap contains all the black magic necessary for the communication.
+
+Program and version numbers are necessary for different versions of clients and
+servers to co-exist. If the request or reply format changes then the servers
+should reject the clients.
+
+Making a Function Network Aware
+-------------------------------
+1. Server must first register with portmapper/rpcbind, which means it is
+   available over network.
+1a. Once registered the RPC system will be checking for network within the
+   dispatcher, and invokes the procedure if a client requests it.
+2. Client reaches the server by calling callrpc(), which performs two steps:
+   a. Locate the server procedure
+   b. Execute the remote procedure call.
+
+Defining the Protocol**
+---------------------
+Defining a protocol for an application involves two steps:
+  a. Specify the datatypes passed between the procedures.
+  b. Identify the remote procedures
+
+Program, Procedure, and Version Numbers
+-------------------------------------
+* Program, Procedure, and Version Numbers together form the logical address
+  where the server registers itself
+* The client and the server use this logical address to communicate among
+  themselves.
+* Using long integers for Program, Procedure, and Version Numbers the services
+  are registered with RPC system and portmapper.
+
+High Level ONC RPC Library Calls   (For UDP only)
+--------------------------------
+Server side:
+  registerrpc(): registerrpc takes (Prog,Vers,Proc,inproc,outproc) and prepares
+                 the dispatcher and is registered with portmapper.
+                 Our server executable may register multiple programs.
+                 The inproc() and outproc() are the XDR filters that the data
+                 passes through when going on and off the network.
+  svc_run(): The server, upon registering with registerrpc(), calls svc_run() to
+             listen to the other end of the socket. The svc_run() call waits on
+             the end of the socket for any requests. If a request arrives then
+             the registered procedure is called.
+
+Client side:
+  callrpc(): The client side has a single rpc call, callrpc.
+             callrpc(host,prognum,versnum,procnum,inproc,in,outproc,out)
+             callrpc checks the portmap and sets up appropriate I/O channel to
+             run a remote procedure.
+
+Shared XDR Routines
+-------------------
+How is data exchanged?
+    * They can be plain strings.
+    * They can be integers
+    * They can be a complex structures
+    * ...
+
+Any arbitrary data can be converted to known data representation. And XDR
+network ready external form.
+
+The XDR filters do one of the following:
+    * XDR_ENCODE
+    * XDR_DECODE
+    * XDR_FREE
+
+The XDR filter looks like this:
+    bool_t xdrproc(XDR *xdrs, <type> *argresp)
+
+If *argresp is NULL XDR_DECODE will allocate space.
+* XDR_ENCODE causes type at *argresp to be encoded into the *xdrs stream.
+* XDR_DECODE causes type to be extracted from *xdrs stream and placed in
+             argresp
