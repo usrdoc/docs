@@ -99,17 +99,17 @@ _volfile_ctx  <-------------------------------  |       |char                   
 |struct xlator_fops    *pass_through_fops   |   |      |int              parent_down     |                |     | int         tbl_index      |
 |uint32_t              cleanup_starting     |   |      |char             graph_uuid[128] |                |     | char        *client_uid    |
 |uint32_t              call_cleanup         |   |      |char             volume_id[37    |                |     | char        *client_name   |
-|gf_category_t         category             |   |      -----------------------------------                |     | struct {                   |
-|gf_atomic_t           xprtrefcnt           |   |                                                         |     |     int flavour            |
-|uint32_t              notify_down          |<--|---------------------------------------------------------/     |     size_t len             |
-|uint32_t              parent_down          |   |                                                               |     char *data             |
-\-------------------------------------------/   |                                                               |     char *username         |
-                                                |                                                               |     char *passwd           |
-                                                |                                                               | } auth                     |
-                                                |                                                               | char        *subdir_mount  |
-  _inode_table (inode_table_t) <----------------/                                                               | inode_t     *subdir_inode  |
-/------------------------------------------------\                                                              | uuid_t      subdir_gfid    |
-|pthread_mutex_t    lock                         |                                                              | int32_t     opversion      |
+|gf_category_t         category  -----------|---|---\  -----------------------------------                |     | struct {                   |
+|gf_atomic_t           xprtrefcnt           |   |   |                                                     |     |     int flavour            |
+|uint32_t              notify_down          |<--|---|-----------------------------------------------------/     |     size_t len             |
+|uint32_t              parent_down          |   |   \-----------> gf_category_t                                 |     char *data             |
+\-------------------------------------------/   |          /-------------------------------------------\        |     char *username         |
+                                                |          |  enum { GF_UNCLASSIFIED = 0,              |        |     char *passwd           |
+                                                |          |         GF_EXPERIMENTAL, GF_TECH_PREVIEW, |        | } auth                     |
+                                                |          |         GF_MAINTAINED, GF_DEPRECATED,     |        | char        *subdir_mount  |
+  _inode_table (inode_table_t) <----------------/          |         GF_OBSOLETE, GF_DOCUMENT_PURPOSE, |        | inode_t     *subdir_inode  |
+/------------------------------------------------\         |       }                                   |        | uuid_t      subdir_gfid    |
+|pthread_mutex_t    lock                         |         \-------------------------------------------/        | int32_t     opversion      |
 |size_t             hashsize                     |                                                              | gf_atomic_t fd_cnt         |
 |char               *name                        |                                                              \----------------------------/
 |inode_t            *root     -------------------|-------------> _inode (inode_t)
