@@ -1,0 +1,152 @@
+server_conf                                  |---------> rpcsvc_state (rpcsvc_t)                       -------->  _glusterfs_ctx
+|----------------------------------------|   |         --------------------------------------------|   |         --------------------------------------------
+|rpcsvc_t             *rpc     ----------|---|         |pthread_rwlock_t     rpclock               |   |         |cmd_args_t          cmd_args              |
+|struct rpcsvc_config rpc_conf ----------|---|         |struct list_head     authschemes           |   |         |char                *process_uuid         |
+|int                  inode_lru_limit    |   |         |dict_t               *options              |   |         |FILE                *pidfp                |
+|gf_boolean_t         verify_volfile     |   |         |uid_t                anonuid               |   |         |char                fin                   |
+|gf_boolean_t         trace              |   |         |gid_t                anongid               |   |         |void                *timer                |
+|char                 *conf_dir          |   |         |glusterfs_ctx_t      *ctx   ---------------|---|         |void                *ib                   |
+|struct _volfile_ctx  *volfile   --------|---|         |struct list_head     listeners             |   |         |struct call_pool    *pool ----------------|------
+|dict_t               *auth_modules      |   |         |struct list_head     programs              |   |         |void                *event_pool           |     |
+|pthread_mutex_t      mutex              |   |         |struct list_head     notify                |   |         |void                *iobuf_pool           |     |
+|struct list_head     xprt_list          |   |         |int                  notify_count          |   |         |void                *logbuf_pool          |     |
+|pthread_t            barrier_th         |   |         |unsigned int         memfactor             |   |         |gf_lock_t           lock                  |     |
+|gf_boolean_t         server_manage_gids |   |  /------|xlator_t             *xl                   |   |         |size_t              page_size             |     |
+|gid_cache_t          gid_cache          |   |  |      |void                 *mydata               |   |         |struct list_head    graphs                |     |
+|int32_t              gid_cache_timeout  |   |  |      |rpcsvc_notify_t      notifyfn              |   |         |glusterfs_graph_t   *active --------------|-----|
+|int                  event_threads      |   |  |      |struct mem_pool      *rxpool --------------|---|         |void                *master               |     |
+|gf_boolean_t         parent_up          |   |  |      |rpcsvc_drc_globals_t *drc    --------------|---|         |void                *mgmt                 |     |
+|gf_boolean_t         dync_auth          |   |  |      |int                  outstanding_rpc_limit |   |         |void                *listener             |     |
+|struct _child_status *child_status -----|---|  |      |gf_boolean_t         addr_namelookup       |   |         |unsigned char       measure_latency       |     |
+|gf_lock_t            itable_lock        |   |  |      |gf_boolean_t         throttle              |   |         |pthread_t           sigwaiter             |     |
+|gf_boolean_t         strict_auth_enabled|   |  |      |gf_boolean_t         allow_insecure        |   |         |char                *cmdlinestr           |     |
+|________________________________________|   |  |      |gf_boolean_t         register_portmap      |   |         |struct mem_pool     *stub_mem_pool        |     |
+                                             |  |      |gf_boolean_t         root_squash           |   |         |unsigned char       cleanup_started       |     |
+                                             |  |      |gf_boolean_t         all_squash            |   |         |int                 graph_id              |     |
+                                             |  |      |___________________________________________|   |         |pid_t               mnt_pid               |     |
+rpcsvc_config <-------------------------------  |                                                      |         |int                 process_mode          |     |
+---------------------------------            |  |       mem_pool <--------------------------------------         |struct syncenv      *env                  |     |
+| int max_block_size            |            |  |       ------------------------------------           |         |struct list_head    mempool_list          |     |
+---------------------------------            |  |       |unsigned long          sizeof_type|           |         |char                *statedump_path       |     |
+                                             |  |       |unsigned long          count      |           |         |struct mem_pool     *dict_pool            |     |
+_volfile_ctx  <-------------------------------  |       |char                   *name      |           |         |struct mem_pool     *dict_pair_pool       |     |
+--------------------------------             |  |       |gf_atomic_t            active     |           |         |struct mem_pool     *dict_data_pool       |     |
+| struct _volfile_ctx *next    |             |  |       |gf_atomic_t            hit        |           |         |glusterfsd_mgmt_event_notify_fn_t notify  |     |
+| char                *key     |             |  |       |gf_atomic_t            miss       |           |         |gf_log_handle_t     log                   |     |
+| uint32_t            checksum |             |  |       |struct list_head       owner      |           |         |int                 mem_acct_enable       |     |
+--------------------------------             |  |       |glusterfs_ctx_t        *ctx  -----|-----------|         |int                 daemon_pipe[2]        |     |
+                                             |  |       |struct mem_pool_shared *pool -----|------     |         |struct clienttable  *clienttable ---------|-----|
+ _child_status <------------------------------  |       ------------------------------------     |     |         |int                 secure_mgmt           |     |
+---------------------------------               |                                                |     |         |int                 ssl_cert_depth        |     |
+|struct list_head status_list   |               |       mem_pool_shared <-------------------------     |         |mgmt_ssl_t          secure_srvr           |     |
+|char             *name         |               |       -----------------------------                  |         |char                btbuf[4096]           |     |
+|char             volume_id[37] |               |       |unsigned int power_of_two  |                  |         |pthread_mutex_t     notify_lock           |     |
+|gf_boolean_t     child_up;     |               |       |gf_atomic_t  allocs_hot    |                  |         |pthread_mutex_t     cleanup_lock          |     |
+---------------------------------               |       |gf_atomic_t  allocs_cold   |                  |         |pthread_cond_t      notify_cond           |     |
+                                                |       |gf_atomic_t  allocs_stdc   |                  |         |int                 notifying             |     |
+                                                |       |gf_atomic_t  frees_to_list |                  |         |struct gf_ctx_tw    *tw                   |     |
+    _xlator (xlator_t) <------------------------/       -----------------------------                  |         |gf_lock_t           volfile_lock          |     |
+/-------------------------------------------\                                                          |         |struct {                                  |     |
+|char                  *name                |           drc_globals (rpcsvc_drc_globals_t) <------------         |    char *metrics_dumppath                |     |
+|char                  *type                |           --------------------------------------------             |} config                                  |     |
+|char                  *instance_name       |           |struct libavl_allocator allocator         |             |struct {                                  |     |
+|xlator_t              *next                |           |gf_lock_t               lock              |             |    gf_atomic_t max_dict_pairs            |     |
+|xlator_t              *prev                |           |uint64_t                cache_hits        |             |    gf_atomic_t total_pairs_used          |     |
+|xlator_list_t         *parents             |           |uint64_t                intransit_hits    |             |    gf_atomic_t total_dicts_used          |     |
+|xlator_list_t         *children            |           |struct mem_pool         *mempool          |             |} stats                                   |     |
+|dict_t                *options             |           |struct list_head        cache_head        |             |struct list_head   volfile_list           |     |
+|void                  *dlhandle            |           |struct list_head        clients_head      |             |char               volume_id[37]          |     |
+|struct xlator_fops    *fops                |           |uint32_t                op_count          |             --------------------------------------------     |
+|struct xlator_cbks    *cbks                |           |uint32_t                client_count      |                                                              |
+|struct xlator_dumpops *dumpops             |           |uint32_t                global_cache_size |                                                              |
+|struct list_head      volume_options       |           |drc_type_t              type              |                                                              |
+|void (*fini)(xlator_t *this)               |           |drc_lru_factor_t        lru_factor        |                                                              |
+|int32_t (*init)(xlator_t *this)            |           |drc_status_t            status            |                                                              |
+|int32_t (*reconfigure)(xlator_t, dict_t)   |           --------------------------------------------                                                              |
+|int32_t (*mem_acct_init)(xlator_t)         |                                                                                                                     |
+|int32_t (*dump_metrics)(xlator_t, int)     |                                                                                                                     |
+|event_notify_fn_t     notify               |                call_pool      <-------------------------------------------------------------------------------------|
+|gf_loglevel_t         loglevel             |          -----------------------------------                                                                        |
+|struct {                                   |          | union {                         |                           clienttable <--------------------------------|
+|    struct {                               |          |     struct list_head all_frames |                        ------------------------------                  |
+|        fop_metrics_t metrics[59]          |          |     struct {                    |                        |unsigned int  max_clients   |                  |
+|        gf_atomic_t count                  |          |         call_stack_t *next_call |                        |gf_lock_t     lock          |                  |
+|    } total                                |          |         call_stack_t *prev_call |                        |cliententry_t *cliententries|----------\       |
+|    struct {                               |          |     } all_stacks                |                        |int           first_free    |          |       |
+|        fop_latency_t latencies[59]        |          | }                               |                        |client_t      *local        |          |       |
+|        fop_metrics_t metrics[59]          |          | int64_t cnt                     |                        ------------------------------          |       |
+|        gf_atomic_t count                  |          | gf_atomic_t total_count         |                                                                |       |
+|    } interval                             |          | gf_lock_t lock                  |                        client_table_entry (cliententry_t) <----/       |
+|} stats                                    |          | struct mem_pool *frame_mem_pool |                       -----------------------------------              |
+|eh_t                  *history             |          | struct mem_pool *stack_mem_pool |                       |client_t   *client   ------------|----\         |
+|glusterfs_ctx_t       *ctx                 |          -----------------------------------                       |int        next_free             |    |         |
+|glusterfs_graph_t     *graph  -------------|-------\                                                            -----------------------------------    |         |
+|inode_table_t         *itable -------------|---\   |                                                                                                   |         |
+|char                  init_succeeded       |   |   \--> glusterfs_graph_t  <---------------------------------------------------------------------------|----------
+|void                  *private             |   |      -----------------------------------                                                              |
+|struct mem_acct       *mem_acct            |   |      |struct list_head list            |                                                              |
+|uint64_t              winds                |   |      |struct timeval   dob             |                             client_t     <-------------------/
+|char                  switched             |   |      |void             *first          |                      /----------------------------\
+|struct mem_pool       *local_pool          |   |      |void             *top            |                      | struct {                   |
+|gf_boolean_t          is_autoloaded        |   |      |int              xl_count        |                      |     gf_lock_t lock         |
+|char                  *volfile_id          |   |      |int              id              |                      |     unsigned short count   |
+|uint32_t              xl_id                |   |      |int              used            |                      |     struct client_ctx *ctx |------> client_ctx
+|uint32_t              op_version[59]       |   |      |uint32_t         volfile_checksum|                      | } scratch_ctx              |       /-----------------\
+|uint32_t              flags                |   |      |uint32_t         leaf_count      |                      | gf_atomic_t bind           |       | void *ctx_key   |
+|uint32_t              id                   |   |      |void             *last_xl        |                      | gf_atomic_t count          |       | void *ctx_value |
+|char                  *identifier          |   |      |pthread_mutex_t  mutex           |                /-----| xlator_t    *bound_xl      |       \-----------------/
+|gf_boolean_t          pass_through         |   |      |pthread_cond_t   child_down_cond |                |     | xlator_t    *this          |
+|struct xlator_fops    *pass_through_fops   |   |      |int              parent_down     |                |     | int         tbl_index      |
+|uint32_t              cleanup_starting     |   |      |char             graph_uuid[128] |                |     | char        *client_uid    |
+|uint32_t              call_cleanup         |   |      |char             volume_id[37    |                |     | char        *client_name   |
+|gf_category_t         category             |   |      -----------------------------------                |     | struct {                   |
+|gf_atomic_t           xprtrefcnt           |   |                                                         |     |     int flavour            |
+|uint32_t              notify_down          |<--|---------------------------------------------------------/     |     size_t len             |
+|uint32_t              parent_down          |   |                                                               |     char *data             |
+\-------------------------------------------/   |                                                               |     char *username         |
+                                                |                                                               |     char *passwd           |
+                                                |                                                               | } auth                     |
+                                                |                                                               | char        *subdir_mount  |
+  _inode_table (inode_table_t) <----------------/                                                               | inode_t     *subdir_inode  |
+/------------------------------------------------\                                                              | uuid_t      subdir_gfid    |
+|pthread_mutex_t    lock                         |                                                              | int32_t     opversion      |
+|size_t             hashsize                     |                                                              | gf_atomic_t fd_cnt         |
+|char               *name                        |                                                              \----------------------------/
+|inode_t            *root     -------------------|-------------> _inode (inode_t)
+|xlator_t           *xl                          |            /---------------------------------------\
+|uint32_t           lru_limit                    |            |  inode_table_t     *table             |
+|struct list_head   *inode_hash                  |            |  uuid_t            gfid               |
+|struct list_head   *name_hash                   |            |  gf_lock_t         lock               |
+|struct list_head   active                       |            |  gf_atomic_t       nlookup            |
+|uint32_t           active_size                  |            |  uint32_t          fd_count           |
+|struct list_head   lru                          |            |  uint32_t          active_fd_count    |
+|uint32_t           lru_size                     |            |  uint32_t          ref                |
+|struct list_head   purge                        |            |  ia_type_t         ia_type            |
+|uint32_t           purge_size                   |            |  struct list_head  fd_list            |
+|struct mem_pool    *inode_pool                  |            |  struct list_head  dentry_list        |
+|struct mem_pool    *dentry_pool                 |            |  struct list_head  hash               |
+|struct mem_pool    *fd_mem_pool                 |            |  struct list_head  list               |
+|int                ctxcount                     |            |  struct _inode_ctx *_ctx     ---------|----\
+|int32_t (*invalidator_fn)(xlator_t *, inode_t *)|            |  bool              in_invalidate_list |    |
+|xlator_t           *invalidator_xl              |            |  bool              invalidate_sent    |    |
+|struct list_head   invalidate                   |            \---------------------------------------/    |
+|uint32_t           invalidate_size              |                                                         |
+|gf_boolean_t       cleanup_started              |                                                         |
+\------------------------------------------------/                                                         |
+                                                                                                           |
+                                                                 _inode_ctx  <-----------------------------/
+                                                             /-----------------------\
+                                                             |  union {              |
+                                                             |      uint64_t key     |
+                                                             |      xlator_t *xl_key |
+                                                             |  }                    |
+                                                             |  union {              |
+                                                             |      uint64_t value1  |
+                                                             |      void *ptr1       |
+                                                             |  }                    |
+                                                             |  union {              |
+                                                             |      uint64_t value2  |
+                                                             |      void *ptr2       |
+                                                             |  }                    |
+                                                             |  int ref              |
+                                                             \-----------------------/
