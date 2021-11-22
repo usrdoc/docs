@@ -34,7 +34,7 @@ _volfile_ctx  <-------------------------------  |       |char                   
 | struct _volfile_ctx *next    |             |  |       |gf_atomic_t            hit        |           |         |glusterfsd_mgmt_event_notify_fn_t notify  |     |
 | char                *key     |             |  |       |gf_atomic_t            miss       |           |         |gf_log_handle_t     log   ----------------|-----|
 | uint32_t            checksum |             |  |       |struct list_head       owner      |           |         |int                 mem_acct_enable       |     |
---------------------------------             |  |       |glusterfs_ctx_t        *ctx  -----|-----------|         |int                 daemon_pipe[2]        |     |
+--------------------------------             |  |       |glusterfs_ctx_t        *ctx  -----|-----------^         |int                 daemon_pipe[2]        |     |
                                              |  |       |struct mem_pool_shared *pool -----|-----*     |         |struct clienttable  *clienttable ---------|-----|
  _child_status <------------------------------  |       \----------------------------------/     |     |         |int                 secure_mgmt           |     |
 ---------------------------------               |                                                |     |         |int                 ssl_cert_depth        |     |
