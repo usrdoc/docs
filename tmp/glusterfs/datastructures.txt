@@ -152,18 +152,18 @@ _volfile_ctx  <-------------------------------  |       |char                   
  |   gid_t            gid                 |                  \-----------------------/                                  | gf_timer_cbk_t  callbk;          |
  |   pid_t            pid                 |                                                                             | void            *data;           |
  |   char             identifier[path_max]|                                                                             | xlator_t        *xl;             |
- |   uint16_t         ngrps               |                      mem_acct                                               | gf_boolean_t    fired;           |
- |   uint32_t         groups_small[128]   |                  *----------------------------*                             \----------------------------------/
- |   uint32_t         *groups_large       |                  | uint32_t         num_types |
- |   uint32_t         *groups             |                  | gf_atomic_t         refcnt |
- |   gf_lkowner_t     lk_owner            |                  | struct mem_acct_rec rec[0] |---------------------*
- |   glusterfs_ctx_t  *ctx                |                  *----------------------------*                     |
- |   struct list_head myframes            |                                                                     *--- mem_acct_rec
- |   int32_t          op                  |                      mem_header                                     /---------------------------\
- |   int8_t           type                |                   *-------------------------------*                 | const char *typestr       |
- |   struct timespec  tv                  |                   | uint32_t         num_types    |                 | uint64_t size             |
- |   xlator_t         *err_xl             |                   | size_t           size         |                 | uint64_t max_size         |
- |   int32_t          error               |                   | struct mem_acct  *mem_acct    |                 | uint64_t total_allocs     |
+ |   uint16_t         ngrps               |                      mem_acct <------------------------*                    | gf_boolean_t    fired;           |
+ |   uint32_t         groups_small[128]   |                  *----------------------------*        |                    \----------------------------------/
+ |   uint32_t         *groups_large       |                  | uint32_t         num_types |        |
+ |   uint32_t         *groups             |                  | gf_atomic_t         refcnt |        |
+ |   gf_lkowner_t     lk_owner            |                  | struct mem_acct_rec rec[0] |--------|------------*
+ |   glusterfs_ctx_t  *ctx                |                  *----------------------------*        |            |
+ |   struct list_head myframes            |                                                        |            *--- mem_acct_rec
+ |   int32_t          op                  |                      mem_header                        |            /---------------------------\
+ |   int8_t           type                |                   *-------------------------------*    |            | const char *typestr       |
+ |   struct timespec  tv                  |                   | uint32_t         num_types    |    |            | uint64_t size             |
+ |   xlator_t         *err_xl             |                   | size_t           size         |    |            | uint64_t max_size         |
+ |   int32_t          error               |                   | struct mem_acct  *mem_acct ---|----*            | uint64_t total_allocs     |
  |   uint32_t         flags               |                   | unit_32          magic        |                 | uint32_t num_allocs       |
  |   struct timespec  ctime               |                   | struct list_head acct_list    |                 | uint32_t max_num_allocs   |
  |   ns_info_t        ns_info             |                   | int              padding[8]   |                 | gf_lock_t lock            |
