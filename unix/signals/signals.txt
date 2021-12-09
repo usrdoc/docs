@@ -1,0 +1,135 @@
+                                        Signals
+
+Abstract
+    The document is not complete or well organised. These are just a set of
+    notes that I have collected over time.
+
+Introduction
+    * Signals are a means by which a process/thread can be notified of a
+      particular event. Or, a signal is a very short message sent to a process
+      or a group of processes. Or Signals are a mechanism to interrupt the flow
+      of a process.
+
+    * A signal is a very short message sent to a process or a group of
+      processes. The message is usually a number (an int/short)
+      For eg:
+          SIGHUP, SIGINT, SIGQUIT ...
+          These are all macros which are translated to a number.
+
+    The two main purposes of signals are:
+        1. Notify the process that a specific event has occured.
+        2. Cause the process to execute a signal handler function included in
+           its code. (If no signal handler is registered, take the default
+                      action. The default actions being `exit', `core', `stop',
+                      `ignore').
+
+    A signal can be sent to a process irrespctive of its state, however it is
+    delivered only to a running process. Process state is unpredictable, it can
+    be running, stopped, runnable etc... the kernel saves the signal till the
+    process is unblocked.
+
+    Phases of signal transmission:
+       1. Signal Generation
+       2. Signal Delivery
+
+    Signal Generation - Kernel updates the datastructures of the process.
+    Signal Delivery   - Kernel forces the destination process to react to the
+                        signal by changing its execution state.
+
+    Signals are consumable resources, once delivered all its previous
+    information is deleted.
+
+
+Occurence of Signals:
+    The occurence of a signal may be `synchronous' or `asynchronous'.
+
+    Synchronous Signals (Referred to as traps):
+       Occur as a direct result of the executing instruction stream, where a
+       unrecoverable error such as an illegal instruction or illegal address
+       reference requires an immediate termination of process.
+
+    Asynchronous Signals (referred to as interrupts)
+       External to execution context. For example kill(2), send_sig(),
+       send_sig_info(), force_sig(), ...
+
+On Pending Signals:
+   * Pending signals are the ones that are generated but not delivered.
+   * There can be only one signal of a certain type that is pending. Duplicate
+     signals are dropped (ignored/discarded).
+   * A signal can remain pending for an unpredictable amount of time.
+
+Key Features:
+   * Signals are usually delivered to currently running process.
+   * Signals of a given type may be blocked by a process, in such cases process
+     does not receive signals until it is unblocked.
+   * When a process executes a signal handler function, it usually masks the
+     corresponding signal. i.e it automatically blocks the corresponding signal
+     until the signal handler function terminates (returns). A signal handler
+     function therefore cannot be interrupted by another occurence of the
+     handled signal, and the function doesn't need to be reentrant.
+
+Ignoring a Signal:
+   * When can the kernel ignore a signal?
+     - The destination process is not traced by another process.
+     - The singal is not blocked by the destination process.
+     - The signal is being ignored by the destination process.
+
+Delivering a Signal:
+   Assume kernel noticed the arrival of a signal and invoked one of the
+   functions to prepare the process descriptor of the process that is supposed
+   to receive the signal.
+
+   What IF? (The process was not running on the CPU at that moment?)
+     * The kernel would defer the task of delivering the signal.
+       - The signal is pending. The kernel checks the existence of pending
+         signals every time it finishes handling an iterrupt or an exception and
+         calls do_signal().
+
+Actions Upon Signal Delivery:
+   A process can respond to a signal in 3 ways:
+     - Explicitly ignore the signal.
+     - Execute the default action associated with the signal.
+     - Catch the signal by invoking a corresponding signal-handler function.
+
+Blocking vs Ignoring a Signal
+   Note that blocking is not same as ignoring.
+   * When a signal is blocked, it is eventually delivered upon unblocking.
+   * When a signal is ignored, it is considered as handled (i.e delivered and no
+     action is taken.
+
+   SIGKILL and SIGSTOP cannot be ignored, caught, or blocked. Their default
+   action is always executed.
+
+On Fatal Signals
+   A signal is considered to be fatal for a given process if delivering the
+   signal causes the kernel to kill the process.
+   * SIGKILL is fatal (kill -9)
+   * A signal whose default actin is to terminate the process and which is not
+     caught by eht process is fatal.
+   * If the process catches a signal and then kills the process is not fatal. It
+     chose to terminate itself :-/
+
+POSIX Signals and Multithreadead Application
+   * Signal handlers must be shared among all threads, however, each thread must
+     have its own mask of pending and blocked signals.
+   * kill() and sigqueue() must send signals to whoe multithreaded application
+     not just a (specific) single thread.
+   * Each signal sent to a multithreaded application will be delivered to just
+     one thread, arbitrarily chosen by the kernel.
+   * If a fatal signal is sent to a multithreaded application, kernel will kill
+     all threads of the application not just a single thread.
+
+
+Who can send a signal?
+   * The sending process may post signals only to receiving process that have
+     same EUID. An excepiton to this rule is the continue signal (SIGCONT)
+     [Why?] If a setuid program is run and is stopped, the user must be able to
+     restart it.
+
+
+Notes:
+    * psig(1) command in Solaris.
+    * prstat(1) command in Solaris.
+
+
+

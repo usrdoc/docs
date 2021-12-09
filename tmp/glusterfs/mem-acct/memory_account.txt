@@ -1,0 +1,82 @@
+                          GlusterFS Memory Accounting
+
+Abstract
+--------
+This document briefly explains the memory accounting infrastructure in
+GlusterFS.
+
+Introduction
+------------
+GlusterFS keeps an account of the amount of memory used by the xlators,
+libraries, and other core components. This information is used to detect and
+debug memory issues in the filesystem.
+      Memory accounting is enabled by default in GlusterFS, unless explicitly
+disabled.
+
+The Data Structures
+-------------------
+GlusterFS makes use of two structures `mem_acct' and `mem_acct_rec' to keep
+track of the memory allocations.
+
+struct mem_acct {
+    uint32_t num_types;
+    gf_atomic_t refcnt;
+    struct mem_acct_rec rec[0];
+};
+
+struct mem_acct_rec {
+    const char *typestr;
+    uint64_t size;
+    uint64_t max_size;
+    uint64_t total_allocs;
+    uint32_t num_allocs;
+    uint32_t max_num_allocs;
+    gf_lock_t lock;
+#ifdef DEBUG
+    struct list_head obj_list;
+#endif
+};
+
+
+The Data Structure Initialization
+---------------------------------
+
+xlator_mem_acct_init / default_mem_acct_init:
+    The function xlator_mem_acct_init allocates and initializes memory of the
+    size mem_acct + (mem_acct_rec * num_allocs), where num_allocs is an enum
+    indicating how many mem_acct_rec structures have to be allocated.
+
+As the name suggets xlator_mem_acct_init is called by the xlators and one of the
+parameters is the pointer to the xlator. Upon allocating memory the pointer to
+the allocated memory is stored in xlator->mem_acct.
+
+xlator_t->mem_acct_init
+    Every xlator should call the xlator_mem_acct_init with its corresponding
+    num_allocs. The mem_acct_init is part of xlator API, the function pointer is
+    assigned xlator_t->mem_acct_init member. For example quick-read translator
+    has the function qr_mem_acct_init which calls xlator_mem_acct_init, the
+    pointer of qr_mem_acct_init is assigned to xlator_t->mem_acct_init.
+
+The function gf_mem_acct_enable_set is called from the cli or the api to enable
+the memory accounting (if it was explictly disabled while starting glusterfs).
+
+The variable gf_global_mem_acct_enable is set to 1 to enable memory accounting.
+
+The function gf_global_mem_acct_enable_set is the same as gf_mem_acct_enable_set
+but only that it takes an integer value.
+
+The function gf_global_mem_acct_enable_get returns the current value of
+gf_global_mem_acct_enable.
+
+The function gf_check_and_set_mem_acct is called in the glusterfsd main
+function, this fuction checks the cli option --no-mem-accounting to unset memory
+accounting.
+
+
+
+
+Notes:
+
+* gf_global_mem_acct_enable is the global variable which is set if enabled.
+* Can the data collected by the memory accounting infrastructure can be dumped by
+  sending the USR1 signal to the glusterfs(d) process?

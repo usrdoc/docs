@@ -1,0 +1,17 @@
+mem_acct_init
+xlator_mem_acct_init
+default_mem_acct_init
+
+
+gf_mem_acct_enable_set
+gf_global_mem_acct_enable
+gf_global_mem_acct_enable_set
+gf_global_mem_acct_enable_get
+gf_check_and_set_mem_acct
+
+dump_mem_acct_details
+gf_mem_set_acct_info
+gf_mem_update_acct_info
+
+gf_mem_acct_enabled
+xlator_mem_acct_unref
