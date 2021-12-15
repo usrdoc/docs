@@ -1,8 +1,8 @@
                                         Signals
 
 Abstract
-    The document is not complete or well organised. These are just a set of
-    notes that I have collected over time.
+    The document is not complete or organised. These are just a set of notes
+    that I have collected over time.
 
 Introduction
     * Signals are a means by which a process/thread can be notified of a
@@ -10,8 +10,7 @@ Introduction
       or a group of processes. Or Signals are a mechanism to interrupt the flow
       of a process.
 
-    * A signal is a very short message sent to a process or a group of
-      processes. The message is usually a number (an int/short)
+    * The message is usually a number (an int/short)
       For eg:
           SIGHUP, SIGINT, SIGQUIT ...
           These are all macros which are translated to a number.
@@ -39,18 +38,30 @@ Introduction
     Signals are consumable resources, once delivered all its previous
     information is deleted.
 
+Genesis of Signals:
+   * Originated by the kernel (illegal memory access, hardware issue...)
+   * Process to itself (abrt ...)
+   * From one process to another (kill ...)
+   * On behalf of the user (C-z, C-c ...)
+
+Lifecycle of a Signal:
+   * Birth (Born when whatever event its associated with occurs and generates it)
+   * End  (Ends when it is delivered, whatever action specified for it has been taken)
 
 Occurence of Signals:
     The occurence of a signal may be `synchronous' or `asynchronous'.
 
     Synchronous Signals (Referred to as traps):
+       [These are said to be generated naturally]
        Occur as a direct result of the executing instruction stream, where a
        unrecoverable error such as an illegal instruction or illegal address
        reference requires an immediate termination of process.
 
     Asynchronous Signals (referred to as interrupts)
+       [These are said to be generated synthetically]
        External to execution context. For example kill(2), send_sig(),
        send_sig_info(), force_sig(), ...
+       SIGKILL, SIGSTOP, SIGTERM, SIGUSR1, SIGUSR2 have no natural cause.
 
 On Pending Signals:
    * Pending signals are the ones that are generated but not delivered.
@@ -88,7 +99,8 @@ Delivering a Signal:
 Actions Upon Signal Delivery:
    A process can respond to a signal in 3 ways:
      - Explicitly ignore the signal.
-     - Execute the default action associated with the signal.
+     - Execute the default action associated with the signal (Terminate, Stop,
+                                                             Continue, Ignore).
      - Catch the signal by invoking a corresponding signal-handler function.
 
 Blocking vs Ignoring a Signal
@@ -112,6 +124,7 @@ On Fatal Signals
 POSIX Signals and Multithreadead Application
    * Signal handlers must be shared among all threads, however, each thread must
      have its own mask of pending and blocked signals.
+     # The set of all blocked signals is called the signal mask.
    * kill() and sigqueue() must send signals to whoe multithreaded application
      not just a (specific) single thread.
    * Each signal sent to a multithreaded application will be delivered to just
@@ -126,10 +139,10 @@ Who can send a signal?
      [Why?] If a setuid program is run and is stopped, the user must be able to
      restart it.
 
+signal(2) vs sigaction(2)
+   * Signal semantics vary over various implementations, sigaction() is
+     suggested over signal().
 
 Notes:
     * psig(1) command in Solaris.
     * prstat(1) command in Solaris.
-
-
-
