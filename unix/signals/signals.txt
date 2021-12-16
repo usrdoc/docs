@@ -25,7 +25,7 @@ Introduction
     A signal can be sent to a process irrespctive of its state, however it is
     delivered only to a running process. Process state is unpredictable, it can
     be running, stopped, runnable etc... the kernel saves the signal till the
-    process is unblocked.
+    process is unblocked and is in RUNNING state.
 
     Phases of signal transmission:
        1. Signal Generation
@@ -142,6 +142,27 @@ Who can send a signal?
 signal(2) vs sigaction(2)
    * Signal semantics vary over various implementations, sigaction() is
      suggested over signal().
+
+
+Q & A:
+------
+
+*  What happens when a SIGTERM/TERM is sent to a stopped process?
+A. Nothing, signal is pending (queued) and delivered when the process wakes up
+   (i.e when CONT is delivered). And as soon as the process wakes up, TERM is
+   delivered and process is terminated.
+
+*  What happens when FPE is sent to a stopped process?
+A. Same as above `nothing' till the process wakes up. Once it wakes up the
+   default action is taken (i.e terminate) unless the signal is caught and
+   handled.
+
+*  What happens when any other signal is sent to a stopped process?
+A. Same as above for all signals except -SIGKILL/-9. Signals KILL and STOP
+   cannot be blocked or handled. Thus KILL is delivered even if the process is
+   stopped. Or in other words, kernel wakes up the stopped process and delivers
+   the signal.
+
 
 Notes:
     * psig(1) command in Solaris.
