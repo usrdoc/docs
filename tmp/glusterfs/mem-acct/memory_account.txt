@@ -46,33 +46,47 @@ xlator_mem_acct_init / default_mem_acct_init:
     size mem_acct + (mem_acct_rec * num_allocs), where num_allocs is an enum
     indicating how many mem_acct_rec structures have to be allocated.
 
-As the name suggets xlator_mem_acct_init is called by the xlators and one of the
-parameters is the pointer to the xlator. Upon allocating memory the pointer to
-the allocated memory is stored in xlator->mem_acct.
+The function xlator_mem_acct_init is called by all the xlators, and one of the
+parameters to the function xlator_mem_acct_init is the pointer to the
+xlator. Upon allocating memory the pointer to the allocated memory is stored in
+xlator->mem_acct.
 
 xlator_t->mem_acct_init
     Every xlator should call the xlator_mem_acct_init with its corresponding
     num_allocs. The mem_acct_init is part of xlator API, the function pointer is
     assigned xlator_t->mem_acct_init member. For example quick-read translator
-    has the function qr_mem_acct_init which calls xlator_mem_acct_init, the
-    pointer of qr_mem_acct_init is assigned to xlator_t->mem_acct_init.
+    has the function qr_mem_acct_init which in turn calls xlator_mem_acct_init,
+    the pointer of qr_mem_acct_init is assigned to xlator_t->mem_acct_init.
 
-The function gf_mem_acct_enable_set is called from the cli or the api to enable
-the memory accounting (if it was explictly disabled while starting glusterfs).
+gf_mem_acct_enable_set
+    Is called from the cli or the api to enable the memory accounting (if it was
+    explictly disabled while starting glusterfs).
 
-The variable gf_global_mem_acct_enable is set to 1 to enable memory accounting.
+gf_global_mem_acct_enable_set
+    Assigns 1 to the global variable gf_global_mem_acct_enable to enable memory
+    accounting.
 
-The function gf_global_mem_acct_enable_set is the same as gf_mem_acct_enable_set
-but only that it takes an integer value.
+gf_mem_acct_enable_set
+    Sets glusterfs_ctx_t->mem_acct_enable to 1.
 
-The function gf_global_mem_acct_enable_get returns the current value of
-gf_global_mem_acct_enable.
+gf_global_mem_acct_enable_get
+    Returns the current value of gf_global_mem_acct_enable.
 
-The function gf_check_and_set_mem_acct is called in the glusterfsd main
-function, this fuction checks the cli option --no-mem-accounting to unset memory
-accounting.
+gf_check_and_set_mem_acct
+    Is called in the glusterfsd main function, this fuction checks the cli
+    option --no-mem-accounting to unset memory accounting. Note that memory
+    accounting is enabled by default.
 
+gf_mem_set_acct_info
+    This function is called by GF_MALLOC and GF_CALLOC. This is the function
+    which does the actual book keeping. Updates the structure mem_acct_rec with
+    the number of allocations this time and total number of allocations.
 
+gf_mem_update_acct_info
+    This function is called by GF_REALLOC, this doesn't change the number of
+    allcoations but just the total allocations.
+
+gf_mem_header_prepare
 
 
 Notes:

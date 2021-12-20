@@ -15,3 +15,5 @@ gf_mem_update_acct_info
 
 gf_mem_acct_enabled
 xlator_mem_acct_unref
+
+gf_mem_header_prepare
