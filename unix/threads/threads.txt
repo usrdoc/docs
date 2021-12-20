@@ -1,0 +1,12 @@
+Some notes on POSIX threads
+
+Two types of thread initialization
+    * Statically -- pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+    * dynamically -- pthread_mutex_init(3)
+
+* Mutexes just serialize (pthread_mutex_t)
+* Waiting problem is solved by condition variables (pthread_cond_t -- Wait and
+                                                    signal)
+
+On "thread-safe"
+  * Routines with no restrictions on how the threads should be used.
