@@ -1,12 +1,39 @@
 Some notes on POSIX threads
 
-Two types of thread initialization
-    * Statically -- pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-    * dynamically -- pthread_mutex_init(3)
+* Threads are all about concurrency, synchronization, and scheduling.
+
+* Two types of thread initialization
+    - Statically -- pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+    - dynamically -- pthread_mutex_init(3)
 
 * Mutexes just serialize (pthread_mutex_t)
+  - Pthreads model uses mutex for protection
 * Waiting problem is solved by condition variables (pthread_cond_t -- Wait and
                                                     signal)
+  - Condition variables are for communication.
 
-On "thread-safe"
-  * Routines with no restrictions on how the threads should be used.
+* On "thread-safe" (also called reentrant)
+  - Routines with no restrictions on how the threads should be used.
+
+* On Types and interfaces
+  - All pthread types are opaque.
+  - There is no public definition of these types' representation, and no
+    assumption should be made about the representation.
+  - Use them only in the manner specifically described by the standard.
+  - For example: A thread identifier, for example, may be an integer, or a
+    pointer, or a structure...
+
+POSIX threads types
+
+/-----------------------------------------------------------------------------\
+| Type                     |      Description                                 |
+|-----------------------------------------------------------------------------|
+| pthread_t                |      Thread identifier                           |
+| pthread_mutex_t          |      Mutex                                       |
+| pthread_cond_t           |      Condition variable                          |
+| pthread_key_t            |      "access key" for thread-specific data       |
+| pthread_attr_t           |      Thread attributes object                    |
+| pthread_mutexattr_t      |      Mutex attribute object                      |
+| pthread_condattr_t       |      Condition variable attribute object         |
+| pthread_once_t           |      "one time initialization" control context   |
+\-----------------------------------------------------------------------------/
