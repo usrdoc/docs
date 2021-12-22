@@ -1,5 +1,21 @@
 Some notes on POSIX threads
 
+POSIX threads data types
+
+/-----------------------------------------------------------------------------\
+| Type                     |      Description                                 |
+|-----------------------------------------------------------------------------|
+| pthread_t                |      Thread identifier                           |
+| pthread_mutex_t          |      Mutex                                       |
+| pthread_cond_t           |      Condition variable                          |
+| pthread_key_t            |      "access key" for thread-specific data       |
+| pthread_attr_t           |      Thread attributes object                    |
+| pthread_mutexattr_t      |      Mutex attribute object                      |
+| pthread_condattr_t       |      Condition variable attribute object         |
+| pthread_once_t           |      "one time initialization" control context   |
+\-----------------------------------------------------------------------------/
+
+
 * Threads are all about concurrency, synchronization, and scheduling.
 
 * Two types of thread initialization
@@ -23,17 +39,52 @@ Some notes on POSIX threads
   - For example: A thread identifier, for example, may be an integer, or a
     pointer, or a structure...
 
-POSIX threads types
 
-/-----------------------------------------------------------------------------\
-| Type                     |      Description                                 |
-|-----------------------------------------------------------------------------|
-| pthread_t                |      Thread identifier                           |
-| pthread_mutex_t          |      Mutex                                       |
-| pthread_cond_t           |      Condition variable                          |
-| pthread_key_t            |      "access key" for thread-specific data       |
-| pthread_attr_t           |      Thread attributes object                    |
-| pthread_mutexattr_t      |      Mutex attribute object                      |
-| pthread_condattr_t       |      Condition variable attribute object         |
-| pthread_once_t           |      "one time initialization" control context   |
-\-----------------------------------------------------------------------------/
+* Are two pthread_t types equal before initializing?
+
+* A typical thread function:
+  void * funcname(void *);
+
+* Just like processes, are there zombie threads?
+  Yes. Threads that have terminated but are not detached retain VM, stack, and
+  other resources. They are zombies in truer sense than the processes.
+
+* When to detach a thread?
+  If we do not wish to know the return status or control it, better to detach a
+  thread.
+  A thread can detach itself and also it can detach any other thread whose ID it
+  can get hold of.
+
+* On pthread_join
+  When to call pthread_join()? Or is it necessary at all?
+  - If you have to know the return status of a thread or its completion status,
+    then pthread_join is called, the pthread_join() blocks the caller until the
+    thread is done. [How to get out of pthread_join()?]
+    Calling pthread_join detaches the specified thread automatically.
+
+******
+* Just calling pthread_create is not enough, one has to "wait" for it.
+  ELSE
+        When main returns all the threads exit (even before completion), iow
+        returning from main() causes all the threads to exit. See example
+        programs in ch2/. We can avoid this by causing the main thread to exit
+        by calling pthread_exit().
+
+        If main doesn't call pthread_join() to wait for the thread to complete
+        it has to do something else and should not die before the threads are
+        done. Something else? For example using the condition variables.
+
+        See ch2/ directory for examples.
+******
+
+Five variations of lifecycle of thread with blocking to ponder about.
+   1. Call pthread_create, pthread_join and be done with it.
+   2. Sleep for 10 seconds in thread, do not call pt_join, pt_exit in main(). In
+      other words "do not wait for the thread".
+   3. Block: Sleep for 10 seconds in thread, call pt_join in main.
+   4. Block: Sleep for 10 seconds in thread, call pt_exit in main.
+   4. No Block: Sleep for 10 seconds in child, but do not block in main, just
+      carry on. The thread never completes.
+   5. Ugly Block: Sleep for 10 seconds in thread, sleep for 15 seconds in
+      main. So, the thread wakes up first, and completes before main. Just by
+      the virtue of it.
