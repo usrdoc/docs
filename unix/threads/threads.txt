@@ -139,3 +139,10 @@ Predicates: Logical expressions that describe the state of invariants needed by
  |       * pthread_mutex_unlock()     |
  \------------------------------------/
 
+Blocking vs non-blocking locks
+------------------------------
+When pthread_mutex_lock is called, the calling thread is blocked if another
+thread has locked the mutex. And stays this way till the mutex is
+unlocked. Sometimes this is not desirable, in such cases use *trylock.
+
+
