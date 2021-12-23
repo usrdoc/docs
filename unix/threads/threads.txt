@@ -88,3 +88,54 @@ Five variations of lifecycle of thread with blocking to ponder about.
    5. Ugly Block: Sleep for 10 seconds in thread, sleep for 15 seconds in
       main. So, the thread wakes up first, and completes before main. Just by
       the virtue of it.
+
+Different States of a thread
+------------------------------
+Ready, Running, Blocked, Terminated
+
+Terminated
+----------
+* A terminated thread is not recycled, it stays in that state holding up the
+  resources till it is "detached" or "joined".
+* A thread reaches the terminated state upon pthread_exit() or upon return.
+* Upon termination all data are considered obsolete.
+
+Creation
+--------
+* "Initial" thread is created by the system upon the start of the process.
+* Additional threads are created by the programmer by calling pthread_create().
+
+** pthread_join() is a convenience, not a rule.
+
+                                Synchronization
+                                ---------------
+
+* Invariants, Critical Sections, and Predicates
+
+Invariants: Assumptions made by a program
+            (relationships between sets of variables)
+
+Critical Sections: We can just call them "serial regions".
+
+Predicates: Logical expressions that describe the state of invariants needed by
+            code. For eg: "Queue is empty", "Resources available".
+
+* Mutexes:
+          Mutexes are for synchronization, they help serialize code.
+
+ /-------------------------------------------------------\
+ | Creating and destroying a mutex:                      |
+ |       * pthread_mutex_t = PTHREAD_MUTEX_INITIALIZER   |
+ |       * pthread_mutex_init()                          |
+ |       * pthread_mutex_destroy()                       |
+ \-------------------------------------------------------/
+
+ ** Never copy a mutex **
+
+ /------------------------------------\
+ | Locking and unlocking a mutex:     |
+ |       * pthread_mutex_lock()       |
+ |       * pthread_mutex_trylock()    |
+ |       * pthread_mutex_unlock()     |
+ \------------------------------------/
+
