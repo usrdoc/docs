@@ -1,4 +1,4 @@
-Some notes on POSIX threads
+                          Some notes on POSIX threads
 
 POSIX threads data types
 
@@ -145,4 +145,88 @@ When pthread_mutex_lock is called, the calling thread is blocked if another
 thread has locked the mutex. And stays this way till the mutex is
 unlocked. Sometimes this is not desirable, in such cases use *trylock.
 
+Common solutions for a deadlock
+-------------------------------
+a. Fixed locking with a locking hierarchy
+      If there are two mutexes mutex_a and mutex_b, always lock with a fixed
+      order. i.e
+       i.  Lock with mutex_a
+       ii. Lock with mutex_b
+
+b. Try and backoff
+       Lock the first mutex, mutex_a. Then try to lock the second mutex, mutex_b
+       with trylock(), if it fails unlock mutex_a.
+
+Try and backoff is inefficient but helps.
+
+
+CONDITION VARIABLES
+-------------------
+Defn: Condition variables are used for communicating information about the state
+      of shared data.
+
+Consider an example:
+    Suppose the operation of a thread thread_a is to manipulate a queue. If the
+    queue is empty the thread_a has nothing to do but unlock the mutex and go on
+    "waiting"/"being blocked" till the queue has some data, possibly populated
+    by another thread thread_b. The thread_b fills up the queue and wakes up the
+    blocked thread, thread_a.
+        Thus the thread thread_a does two things:
+                 a. unlock the mutex
+                 b. block itself (so that another thread can find its id and
+                                  wake it up)
+
+    If thread_b happens to lock the queue before thread_a blocks itself,
+    thread_b doesn't even know that thread_a is waiting and thus: thread_a might
+    go on blocking forever.
+    Thus step (a) and (b) must be atomic. If not, the window between steps (a)
+    and (b) can be a breeding ground for race conditions.
+
+A "condition variable wait" always returns with the mutex locked.
+
+A condition variable is a "signalling mechanism" associated with a mutex and by
+extension is also associated with the shared data proteced by the mutex.
+
+"WAITING" on a condition variable atomically releases the associated mutex and
+          waits until another thread signals or broadcasts the condition
+          variable.
+
+"Condition variables are for signalling, not for mutual exclusion".
+
+
+           Creating and destroying a condition variable
+           --------------------------------------------
+
+        /-------------------------------------------------\
+        |  pthread_cond_t cond = PTHREAD_COND_INITIALIZER |
+        |  pthread_cond_init(...);                        |
+        |  pthread_cond_destroy(...);                     |
+        \-------------------------------------------------/
+
+
+Waiting on a condition variable
+--------------------------------
+
+        /-----------------------------\
+        | pthread_cond_wait()         |
+        | pthread_cond_timedwait()    |
+        \-----------------------------/
+
+
+* A condition variable must be associated with a mutex and with a predicate
+  condtion.
+* When a thread waits on a condition variable it must always have the associated
+  mutex locked.
+* pthread_cond_wait()
+    - unlock the mutex
+       > block the thread
+    - relock the mutex
+   <- return from pthread_cond_wait()
+
+                           Waking condition variables
+                           --------------------------
+              /---------------------------\
+              |  pthread_cond_signal()    |
+              |  pthread_cond_broadcast() |
+              \---------------------------/
 
