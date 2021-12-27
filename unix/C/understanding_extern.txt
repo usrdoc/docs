@@ -1,0 +1,22 @@
+Understanding extern
+
+Consider a program which has the header files: foo.h bar.h and a source file:
+prog.c
+    If prog.c includes foo.h and bar.h and they have a declaration `int score'
+    there is no need to mention extern int score in prog.c to use score.
+
+Now consider a program which has header files: foo.h and source files: bar.c
+baz.c and that bar.c has a declaration `int score', if the same variable has to
+be used in baz.c, it has to declare extern int score before using it in its
+functions.
+
+For example:
+    The declaration `extern int errno;' is not necessary in programs where
+    `<errno.h>' is included. This declaration is done by `errno.h'.
+    If `errno.h' is not included, then `extern int errno;' makes sense.
+    However, if the program wants to use any of EXXXX constants, then
+    there is no escape from `errno.h'.
+
+
+
+
