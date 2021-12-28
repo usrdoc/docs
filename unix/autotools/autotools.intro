@@ -1,0 +1,130 @@
+The GNU Autotools framework is comprised of three main packages, each of which
+provides and relies on several smaller components. The three main packages are
+"Autoconf", "Automake", and "Libtool". These packages were invented in that
+order, and evolved over time. Additionally, the tools in the Autotools packages
+can depend on or use utilities and functionality from the gettext, m4, sed, make
+and perl packages, as well as others.
+
+Autoconf
+--------
+
+With Autoconf, instead of modifying, debugging and losing sleep over literally
+thousands of lines of supposedly portable shell script, developers can write a
+short meta-script file, using a concise macro-based language, and let Autoconf
+generate a perfect configuration script.
+
+A generated configuration script is more portable, more correct, and more
+maintainable than a hand-code version of the same script. In addition, Autoconf
+often catches semantic or logic errors that the author would have spent days
+debugging. Another benefit of Autoconf is that the shell code it generates is as
+portable as possible between systems that supply any form of the Bourne
+shell. Mistakes made in portability between shells are by far the most common,
+and unfortunately the most difficult to find, because no one programmer has
+access to all versions or brands of Bourne-like shells in existence.
+
+Autoconf generated configure scripts provide a common set of options that are
+important to all portable, free, open source, and proprietary software projects
+running on LSB-compliant systems. These include options to modify "standard
+locations", a concept I'll cover in more detail in Chapter 2. Autoconf generated
+configure scripts also provide project-specific options. These are defined in
+the configure.ac file for each project. I'll detail this process in Chapter 3.
+
+The Autoconf package provides several programs. Autoconf itself is written in
+Bourne shell script, while the others are perl scripts.
+
+autoconf
+autoheader
+autom4te
+autoreconf
+autoscan
+autoupdate
+ifnames
+
+
+Automake
+--------
+
+Automake's job is to convert a much simplified specification of your project's
+build process into standard boilerplate makefile syntax that always works
+correctly the first time, and provides all the standard functionality expected
+of a free software project. In actuality, Automake creates projects that support
+guidelines defined in the GNU Coding Standards.
+
+The Automake package provides the following tools in the form of perl scripts:
+    * automake
+    * aclocal
+
+The primary task of the Automake program is to generate standard makefile
+templates (named Makefile.in) from high-level build specification files (named
+Makefile.am). One of the most interesting and useful aspects of the way Automake
+works is that the Makefile.am input files are mostly just regular makefiles. If
+you put only the few required Automake definitions in a Makefile.am, you'll get
+a Makefile.in file containing several hundred lines of makefile code. But if you
+add additional makefile syntax to your Makefile.am files, this code will be
+transferred to the most functionally correct location in the resulting
+Makefile.in. In fact, you can (if you wish) write pure make syntax in your
+Makefile.am files, and they'll work just fine (as long as you actually write
+them correctly, that is). This pass-through feature gives you the power and
+flexibility to extend Automake's functionality with your project's own special
+requirements.
+
+
+
+Aclocal
+-------
+
+The aclocal utility is actually documented by the GNU manuals as a temporary
+work-around for a certain lack of flexibility in Autoconf. Autoconf was designed
+and written first, and then a few years later, the idea for Automake was
+conceived as an add-on for Autoconf. But Autoconf was really not designed to be
+extensible on the scale required by Automake.
+
+Automake adds an extensive set of macros to those provided by Autoconf. The
+originally documented method for adding user-defined macros to an Autoconf
+project was to create a file called aclocal.m4 in the same directory as
+configure.ac. Any user-provided extension macros were to be placed in this file,
+and Autoconf would automatically read it while processing configure.ac. From the
+perspective of the Automake designers, this existing extension mechanism was too
+good to pass up. But requiring the user to add an m4_include line to aclocal.m4
+seemed a bit brittle. Instead, the aclocal utility was designed to create a
+project's aclocal.m4 file, containing all the required Automake macros. Since
+Automake's aclocal utility basically took over aclocal.m4 for its own purposes,
+it was also designed to read a new user-provided macro file called
+acinclude.m4.
+
+Essentially, aclocal's job is to create an aclocal.m4 file by consolidating
+various macro files from installed Autotool packages and user-specified
+locations, such that Autoconf can find them all in one place.
+
+For the sake of modularity, the Autoconf manual is still unaware of the aclocal
+utility--for the most part. The current revision of the manual rants a bit on
+the subject of where aclocal functionality should actually be. Automake's manual
+originally suggested that you should rename aclocal.m4 to acinclude.m4 when
+adding Automake to an existing Autoconf project. This method is still followed
+rigorously in new projects.
+
+However, the latest documentation from both sets of tools suggests that the
+entire aclocal/acinclude paradigm is now obsolete, in favor of a newer method of
+specifying a directory containing m4 macro files. The current recommendation is
+that you create a directory in your project directory called simply m4
+(acinclude seems more appropriate to this author), and add macros in the form of
+individual .m4 files to this directory. All files in this directory will be
+gathered into aclocal.m4 before Autoconf processes your configure.ac
+file. Ultimately, aclocal will be replaced by functionality in Autoconf
+itself. (Given the fairly complex nature of aclocal functionality, and given
+that most of the other tools are already written in perl, I'm guessing that
+Autoconf will be rewritten in perl, at this point.)
+
+With aclocal behind us, it should be more apparent now why the aclocal.m4 box in
+the Autoconf data flow diagram of Figure 1 above couldn't decide which color it
+should be. When used without Automake and Libtool, the aclocal.m4 file is
+written by hand, but when used in conjunction with Automake and Libtool, the
+file is generated by the aclocal utility, and acinclude.m4 is used to provide
+project-specific macros.
+
+
+References:
+   0. https://sourceware.org/autobook/autobook/autobook_toc.html
+   1. http://freesoftwaremagazine.com/articles/brief_introduction_to_gnu_autotools/
+   2. http://freesoftwaremagazine.com/authors/John%20Calcote/
+
