@@ -1,0 +1,10 @@
+
+    rpcsvc_cbk_program_t
+   /-----------------------------\
+   | struct rpcsvc_cbk_program { |
+   |      char *progname;        |
+   |      int prognum;           |
+   |      int progver;           |
+   |  };                         |
+   \-----------------------------/
+

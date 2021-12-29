@@ -183,27 +183,27 @@ _volfile_ctx  <-------------------------------  |       |char                   
 |  gf_log_logger_t  logger       ----------------|---|          \------------------------------/                                        |int fd                              |
 |  gf_log_format_t  log_format   ----------------|---/                                                                                  |int breaker[2]                      |
 |  uint32_t         log_buf_size                 |                                                                                      |int count                           |
-|  uint32_t         log_flush_timeout            |                iobuf_pool                                                            |struct event_slot_poll *reg   ------|---\
-|  int32_t          max_connect_attempts         |         *-----------------------------------------------------------------------*    |struct event_slot_epoll *ereg[1024]-|---|
-|  char             *print_exports               |         | pthread_mutex_t mutex                                                 |    |int slots_used[EVENT_EPOLL_TABLES]  |   |
-|  char             *print_netgroups             |         | size_t arena_size                                                     |    |struct list_head poller_death       |   |
-|  int              print_xlatordir              |         | size_t default_page_size                                              |    |int poller_death_sliced             |   |
-|  int              print_statedumpdir           |         | struct list_head all_arenas                                           |    |int poller_gen                      |   |
-|  int              print_logdir                 |         | struct list_head arenas[GF_VARIABLE_IOBUF_COUNT]                      |    |int used                            |   |
-|  int              print_libexecdir             |         | struct list_head filled[GF_VARIABLE_IOBUF_COUNT]                      |    |int changed                         |   |
-|  uint32_t         volfile_server_port          |         | struct list_head purge[GF_VARIABLE_IOBUF_COUNT]                       |    |pthread_mutex_t mutex               |   |
-|  char             *volfile_server_transport    |         | uint64_t request_misses                                               |    |pthread_cond_t cond                 |   |
-|  uint32_t         log_server_port              |         | int      arena_cnt                                                    |    |void *evcache                       |   |
-|  char             *pid_file                    |         | int      rdma_device_count                                            |    |int evcache_size                    |   |
-|  char             *sock_file                   |         | struct list_head *mr_list[GF_RDMA_DEVICE_COUNT]                       |    |int eventthreadcount                |   |
-|  int              no_daemon_mode               |         | void *device[GF_RDMA_DEVICE_COUNT]                                    |    |pthread_t pollers[EVENT_MAX_THREADS]|   |
-|  char             *run_id                      |         | int (*rdma_registration)(void **, void *)                             |    |int destroy                         |   |
-|  int              debug_mode                   |         | int (*rdma_deregistration)(struct list_head **, struct iobuf_arena *) |    |int activethreadcount               |   |
-|  int              read_only                    |         *-----------------------------------------------------------------------*    |int auto_thread_count               |   |
-|  int              acl                          |                                                                                      *------------------------------------*   |
-|  int              selinux                      |                                                                                                                               |
-|  int              capability                   |         event_slot_poll <-----------------------------------------------------------------------------------------------------|
-|  int              enable_ino32                 |    /--------------------------\                                             event_slot_epoll <--------------------------------/
+|  uint32_t         log_flush_timeout            |                iobuf_pool                                                            |struct event_slot_poll *reg   ------|--\
+|  int32_t          max_connect_attempts         |         *-----------------------------------------------------------------------*    |struct event_slot_epoll *ereg[1024]-|--\
+|  char             *print_exports               |         | pthread_mutex_t mutex                                                 |    |int slots_used[EVENT_EPOLL_TABLES]  |  |
+|  char             *print_netgroups             |         | size_t arena_size                                                     |    |struct list_head poller_death       |  |
+|  int              print_xlatordir              |         | size_t default_page_size                                              |    |int poller_death_sliced             |  |
+|  int              print_statedumpdir           |         | struct list_head all_arenas                                           |    |int poller_gen                      |  |
+|  int              print_logdir                 |         | struct list_head arenas[GF_VARIABLE_IOBUF_COUNT]                      |    |int used                            |  |
+|  int              print_libexecdir             |         | struct list_head filled[GF_VARIABLE_IOBUF_COUNT]                      |    |int changed                         |  |
+|  uint32_t         volfile_server_port          |         | struct list_head purge[GF_VARIABLE_IOBUF_COUNT]                       |    |pthread_mutex_t mutex               |  |
+|  char             *volfile_server_transport    |         | uint64_t request_misses                                               |    |pthread_cond_t cond                 |  |
+|  uint32_t         log_server_port              |         | int      arena_cnt                                                    |    |void *evcache                       |  |
+|  char             *pid_file                    |         | int      rdma_device_count                                            |    |int evcache_size                    |  |
+|  char             *sock_file                   |         | struct list_head *mr_list[GF_RDMA_DEVICE_COUNT]                       |    |int eventthreadcount                |  |
+|  int              no_daemon_mode               |         | void *device[GF_RDMA_DEVICE_COUNT]                                    |    |pthread_t pollers[EVENT_MAX_THREADS]|  |
+|  char             *run_id                      |         | int (*rdma_registration)(void **, void *)                             |    |int destroy                         |  |
+|  int              debug_mode                   |         | int (*rdma_deregistration)(struct list_head **, struct iobuf_arena *) |    |int activethreadcount               |  |
+|  int              read_only                    |         *-----------------------------------------------------------------------*    |int auto_thread_count               |  |
+|  int              acl                          |                                                                                      *------------------------------------*  |
+|  int              selinux                      |                                                                                                                              |
+|  int              capability                   |         event_slot_poll <----------------------------------------------------------------------------------------------------/
+|  int              enable_ino32                 |    /--------------------------\                                             event_slot_epoll <-------------------------------/
 |  int              worm                         |    | int             fd       |                                           /-------------------------------\
 |  int              mac_compat                   |    | int             events   |                                           | int              fd           |
 |  int              fopen_keep_cache             |    | void            *data    |                                           | int              events       |
