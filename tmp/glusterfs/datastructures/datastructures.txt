@@ -1,4 +1,4 @@
-server_conf                                  |---------> rpcsvc_state (rpcsvc_t)                       -------->  _glusterfs_ctx
+server_conf                                  /---------> rpcsvc_state (rpcsvc_t)                       -------->  _glusterfs_ctx
 |----------------------------------------|   |         --------------------------------------------|   |         --------------------------------------------
 |rpcsvc_t             *rpc     ----------|---|         |pthread_rwlock_t     rpclock               |   |         |cmd_args_t          cmd_args              |
 |struct rpcsvc_config rpc_conf ----------|---|         |struct list_head     authschemes           |   |         |char                *process_uuid         |
@@ -220,40 +220,84 @@ _volfile_ctx  <-------------------------------  |       |char                   
 |  double           fuse_negative_timeout        |                                                                           \-------------------------------/
 |  double           fuse_attribute_timeout       |
 |  char             *volume_name                 |
-|  int              fuse_nodev                   |
-|  int              fuse_nosuid                  |
-|  char             *dump_fuse                   |
-|  pid_t            client_pid                   |
-|  int              client_pid_set               |
-|  unsigned         uid_map_root                 |
-|  int32_t          lru_limit                    |
-|  int32_t          invalidate_limit             |
-|  int              background_qlen              |
-|  int              congestion_threshold         |
-|  char             *fuse_mountopts              |
-|  int              mem_acct                     |
-|  int              resolve_gids                 |
-|  char             *mount_point                 |
-|  char             *volfile_id                  |
-|  int              brick_port                   |
-|  char             *brick_name                  |
-|  int              brick_port2                  |
-|  int              secure_mgmt                  |
-|  #ifdef GF_LINUX_HOST_OS                       |
-|  char             *oom_score_adj               |
+|  int              fuse_nodev                   |                   xlator_api_t
+|  int              fuse_nosuid                  |              /-----------------------------------------------------------------------------\
+|  char             *dump_fuse                   |              |  struct {                                                                   |
+|  pid_t            client_pid                   |              |      uint32_t              op_version[GF_MAX_RELEASES];                     |
+|  int              client_pid_set               |              |      uint32_t              flags;                                           |
+|  unsigned         uid_map_root                 |              |      uint32_t              xlator_id;                                       |
+|  int32_t          lru_limit                    |              |      char                  *identifier;                                     |
+|  int32_t          invalidate_limit             |              |      volume_option_t       *options;                                        |
+|  int              background_qlen              |              |      gf_category_t         category;                                        |
+|  int              congestion_threshold         |              |      int32_t               (*init)(xlator_t *this);                         |
+|  char             *fuse_mountopts              |              |      void                  (*fini)(xlator_t *this);                         |
+|  int              mem_acct                     |              |      int32_t               (*reconfigure)(xlator_t *this, dict_t *options); |
+|  int              resolve_gids                 |              |      int32_t               (*mem_acct_init)(xlator_t *this);                |
+|  char             *mount_point                 |              |      int32_t               (*dump_metrics)(xlator_t *this, int fd);         |
+|  char             *volfile_id                  |              |      event_notify_fn_t     notify;                                          |
+|  int              brick_port                   |              |      struct xlator_fops    *fops;                                           |
+|  char             *brick_name                  |              |      struct xlator_cbks     *cbks;                                          |
+|  int              brick_port2                  |              |      struct xlator_dumpops *dumpops;                                        |
+|  int              secure_mgmt                  |              |      struct xlator_fops    *pass_through_fops;                              |
+|  #ifdef GF_LINUX_HOST_OS                       |              |  };                                                                         |
+|  char             *oom_score_adj               |              \-----------------------------------------------------------------------------/
 |  #endif                                        |
 |  int              valgrind                     |
-|  int              localtime_logging            |
-|  char             *subdir_mount                |
-|  char             *process_name                |
-|  char             *event_history               |
-|  int              thin_client                  |
-|  uint32_t         reader_thread_count          |
-|  int              kernel_writeback_cache       |
-|  uint32_t         attr_times_granularity       |
-|  int              fuse_flush_handle_interrupt  |
-|  int              fuse_auto_inval              |
-|  bool             global_threading             |
-|  bool             brick_mux                    |
-|  uint32_t         fuse_dev_eperm_ratelimit_ns  |
-\------------------------------------------------/
+|  int              localtime_logging            |                       gf_lock_t  <-----------------------\           rpcsvc_cbk_program_t
+|  char             *subdir_mount                |               /----------------------------------\       |          /-----------------------------\
+|  char             *process_name                |               | union {                          |       |          | struct rpcsvc_cbk_program { |
+|  char             *event_history               |               |     pthread_spinlock_t spinlock; |       |          |      char *progname;        |
+|  int              thin_client                  |               |     pthread_mutex_t mutex;       |       |          |      int prognum;           |
+|  uint32_t         reader_thread_count          |               | };                               |       |          |      int progver;           |
+|  int              kernel_writeback_cache       |               \----------------------------------/       |          |  };                         |
+|  uint32_t         attr_times_granularity       |                                                          |          \-----------------------------/
+|  int              fuse_flush_handle_interrupt  |                                                          |
+|  int              fuse_auto_inval              |                                                          |
+|  bool             global_threading             |                                                          \----------\
+|  bool             brick_mux                    |                                                                     |
+|  uint32_t         fuse_dev_eperm_ratelimit_ns  |                                                                     |
+\------------------------------------------------/                                                                     |
+                                                                                                                       |
+    _dict (dict_t)                    /------->  _data_pair (data_pair_t)      /-------> _data (data_t)                |          gid_cache_t
+ /--------------------------------\   |    /-------------------------------\   |   /-------------------------------\   |    /-------------------------------------------\
+ | uint64_t     max_count         |   |    | struct _data_pair *hash_next  |   |   | char                *data     |   \----| gf_lock_t    gc_lock                      |
+ | int32_t      hash_size         |   |    | struct _data_pair *prev       |   |   | gf_atomic_t         refcount  |        | uint32_t     gc_max_age                   |
+ | int32_t      count             |   |    | struct _data_pair *next       |   |   | gf_dict_data_type_t data_type |        | unsigned int gc_nbuckets                  |
+ | gf_atomic_t  refcount          |   |    | data_t            *value  ----|---/   | int32_t             len       |      /-| gid_list_t   gc_cache[AUX_GID_CACHE_SIZE] |
+ | data_pair_t  **members   ------|---/    | char              *key        |       | gf_boolean_t        is_static |      | \-------------------------------------------/
+ | data_pair_t  *members_list     |        | uint32_t          key_hash    |       \-------------------------------/      |
+ | char         *extra_stdfree    |        \-------------------------------/                                              |
+ | gf_lock_t    lock              |                                                                                       |
+ | data_pair_t  *members_internal |  /------------------------------------------------------------------------------------/
+ | data_pair_t  free_pair         |  |
+ \--------------------------------/  |
+                                     |
+      gid_list_t   <-----------------/           rpcsvc_program                                  /---> rpcsvc_actor_desc (rpcsvc_actor_t)
+  /-----------------------\                /---------------------------------------------------\ |   /------------------------------------\
+  | uint64_t gl_id;       |                | char                   progname[int]              | |   | char                procname[int]  |
+  | uint64_t gl_uid;      |                | int                    prognum                    | |   | rpcsvc_actor        actor          |
+  | uint64_t gl_gid;      |                | int                    progver                    | |   | rpcsvc_vector_sizer vector_sizer   |
+  | int      gl_count;    |                | dict_t                 *options                   | |   | int                 procnum        |
+  | gid_t    *gl_list;    |                | int                    progaddrfamily             | |   | drc_op_type_t       op_type        |
+  | time_t   gl_deadline; |                | char                   *proghost                  | |   | gf_boolean_t        unprivileged   |
+  \-----------------------/                | rpcsvc_actor_t         *actors   -----------------|-/   \------------------------------------/
+                                           | int                    numactors                  |
+                                           | int                    proghighvers               |  /----> rpcsvc_request_queue (rpcsvc_request_queue_t)
+                                           | void                   *private                   |  |    /---------------------------------------------\
+                                           | rpcsvc_notify_t        notify                     |  |    | struct list_head             request_queue  |
+                                           | int                    proglowvers                |  |    | pthread_mutex_t              queue_lock     |
+                                           | int                    min_auth                   |  |    | pthread_cond_t               queue_cond     |
+                                           | struct list_head       program                    |  |    | pthread_t                    thread         |
+                                           | rpcsvc_request_queue_t request_queue[int] --------|--/    | struct rpcsvc_program        *program       |
+                                           | pthread_mutex_t        thr_lock                   |       | int                          gen            |
+                                           | pthread_cond_t         thr_cond                   |       | gf_boolean_t                 waiting        |
+                                           | int                    threadcount                |       \---------------------------------------------/
+                                           | int                    thr_queue                  |
+                                           | pthread_key_t          req_queue_key              |
+                                           | int                    eventthreadcount           |
+                                           | uint16_t               progport                   |
+                                           | gf_boolean_t           ownthread                  |
+                                           | gf_boolean_t           alive                      |
+                                           | gf_boolean_t           synctask                   |
+                                           | char                   request_queue_status[int]  |
+                                           \---------------------------------------------------/
