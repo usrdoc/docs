@@ -1,0 +1,64 @@
+     rpc_transport (rpc_transport_t)                       /------>rpc_transport_ops                                                   /->rpc_transport_req (rpc_transport_req_t)
+  /-------------------------------------------------\      |   /---------------------------------------------------------------------\ | /----------------------------------------\
+  | struct rpc_transport_ops *ops        -----------|------/   | int32_t (*submit_request)(rpc_transport_t *, rpc_transport_req_t *) |-/ | struct rpc_req *rpc_req                |
+  | rpc_transport_t          *listener              |          | int32_t (*submit_reply)(rpc_transport_t *, rpc_transport_reply_t *) |   | rpc_transport_msg_t msg                |
+  | void                     *private               |          | int32_t (*connect)(rpc_transport_t *, int)                          |   | rpc_transport_rsp_t rsp                |
+  | struct _client           *xl_private            |          | int32_t (*listen)(rpc_transport_t *)                                |   \----------------------------------------/
+  | void                     *xl                    |          | int32_t (*disconnect)(rpc_transport_t *, gf_boolean_t)              |
+  | void                     *mydata                |          | int32_t (*get_peername)(rpc_transport_t *, char *, int)             |
+  | pthread_mutex_t          lock                   |          | int32_t (*get_peeraddr)(rpc_transport_t *, char *, int,             |
+  | gf_atomic_t              refcount               |          |                         struct sockaddr_storage *, socklen_t)       |
+  | glusterfs_ctx_t          *ctx                   |          | int32_t (*get_myname)(rpc_transport_t *, char *, int)               |
+  | dict_t                   *options               |          | int32_t (*get_myaddr)(rpc_transport_t *, char *, int,               |
+  | char                     *name                  |          |                       struct sockaddr_storage *, socklen_t)         |
+  | void                     *dnscache              |          | int32_t (*throttle)(rpc_transport_t *, gf_boolean_t)                |
+  | void                     *drc_client            |          \---------------------------------------------------------------------/
+  | data_t                   *buf                   |
+  | int32_t (*init)(rpc_transport_t *this)          |             rpc_req                                 rpc_transport_msg (rpc_transport_msg_t)
+  | void (*fini)(rpc_transport_t *this)             |        /--------------------------------------\    /----------------------------------------\
+  | int (*reconfigure)(rpc_transport_t, dict_t)     |        | rpc_clnt_connection_t *conn          |    |  struct iovec  *rpchdr                 |
+  | rpc_transport_notify_t   notify                 |        | struct iovec          req[2]         |    |  struct iovec  *proghdr                |
+  | void                     *notify_data           |        | struct iobref         *req_iobref    |    |  int           rpchdrcount             |
+  | peer_info_t              peerinfo               |        | struct iovec          rsp[2]         |    |  int           proghdrcount            |
+  | peer_info_t              myinfo                 |        | int                   rspcnt         |    |  struct iovec  *progpayload            |
+  | uint64_t                 total_bytes_read       |        | int                   reqcnt         |    |  struct iobref *iobref                 |
+  | uint64_t                 total_bytes_write      |        | struct iobref         *rsp_iobref    |    |  int           progpayloadcount        |
+  | uint32_t                 xid                    |        | rpc_clnt_prog_t       *prog          |    \----------------------------------------/
+  | int32_t                  outstanding_rpc_count  |        | rpc_auth_data_t       verf           |
+  | struct list_head         list                   |        | fop_cbk_fn_t          cbkfn          |      rpc_transport_rsp (rpc_transport_rsp_t)
+  | void                     *dl_handle             |        | void                  *conn_private  |     /----------------------------------------\
+  | char                     *ssl_name              |        | int                   procnum        |     | struct iovec  *rsphdr                  |
+  | dict_t                   *clnt_options          |        | int                   rpc_status     |     | struct iovec  *rsp_payload             |
+  | gf_atomic_t              disconnect_progress    |        | uint32_t              xid            |     | int           rsphdr_count             |
+  | int                      bind_insecure          |        \--------------------------------------/     | int           rsp_payload_count        |
+  | gf_boolean_t             connect_failed         |                                                     | struct iobref *rsp_iobref              |
+  | char                     notify_poller_death    |                                                     \----------------------------------------/
+  | char                     poller_death_accept    |
+  \-------------------------------------------------/
+
+
+    rpc_clnt_connection (rpc_clnt_connection_t)            rpc_clnt_program (rpc_clnt_prog_t)       rpc_auth_data (rpc_auth_data_t)     rpc_clnt_procedure_t
+  /---------------------------------------------\        /-----------------------------------\    /--------------------------------\   /---------------------\
+  | pthread_mutex_t             lock            |        |  char                 *progname   |    | int     flavour                |   | Char      *procname |
+  | pthread_cond_t              cond            |        |  int                  prognum     |    | int     datalen                |   | clnt_fn_t fn        |
+  | rpc_transport_t             *trans          |        |  int                  progver     |    | char    authdata[INT]          |   \---------------------/
+  | struct rpc_clnt_config      config          |        |  rpc_clnt_procedure_t *proctable  |    \--------------------------------/
+  | gf_timer_t                  *reconnect      |        |  char                 **procnames |
+  | gf_timer_t                  *timer          |        |  int                  numproc     |       rpc_clnt_config
+  | gf_timer_t                  *ping_timer     |        \-----------------------------------/     /-------------------\
+  | struct rpc_clnt             *rpc_clnt       |                                                  | int  rpc_timeout  |
+  | struct saved_frames         *saved_frames   |          _gf_timer (gf_timer_t)                  | int  remote_port  |
+  | struct timespec             last_sent       |         /---------------------------------\      | char *remote_host |
+  | struct timespec             last_received   |         | union {                         |      | int  ping_timeout |
+  | uint64_t                    pingcnt         |         |     struct list_head      list  |      \-------------------/
+  | uint64_t                    msgcnt          |         |     struct {                    |
+  | uint64_t                    cleanup_gen     |         |         struct _gf_timer *next  |
+  | char                        *name           |         |         struct _gf_timer *prev  |
+  | int32_t                     ping_started    |         |     }                           |
+  | int32_t                     frame_timeout   |         | }                               |
+  | int32_t                     ping_timeout    |         | struct timespec     at          |
+  | gf_boolean_t                disconnected    |         | gf_timer_cbk_t      callbk      |
+  | char                        connected       |         | void                *data       |
+  \---------------------------------------------/         | xlator_t            *xl         |
+                                                          | gf_boolean_t        fired       |
+                                                          \---------------------------------/

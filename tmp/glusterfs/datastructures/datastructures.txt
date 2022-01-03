@@ -272,7 +272,7 @@ _volfile_ctx  <-------------------------------  |       |char                   
  | data_pair_t  free_pair         |  |
  \--------------------------------/  |
                                      |
-      gid_list_t   <-----------------/           rpcsvc_program                                  /---> rpcsvc_actor_desc (rpcsvc_actor_t)
+      gid_list_t   <-----------------/           rpcsvc_program (rpcsvc_program_t)               /---> rpcsvc_actor_desc (rpcsvc_actor_t)
   /-----------------------\                /---------------------------------------------------\ |   /------------------------------------\
   | uint64_t gl_id;       |                | char                   progname[int]              | |   | char                procname[int]  |
   | uint64_t gl_uid;      |                | int                    prognum                    | |   | rpcsvc_actor        actor          |
