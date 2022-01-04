@@ -4,15 +4,15 @@
   | rpc_transport_t          *listener              |          | int32_t (*submit_reply)(rpc_transport_t *, rpc_transport_reply_t *) |   | rpc_transport_msg_t msg                |
   | void                     *private               |          | int32_t (*connect)(rpc_transport_t *, int)                          |   | rpc_transport_rsp_t rsp                |
   | struct _client           *xl_private            |          | int32_t (*listen)(rpc_transport_t *)                                |   \----------------------------------------/
-  | void                     *xl                    |          | int32_t (*disconnect)(rpc_transport_t *, gf_boolean_t)              |
-  | void                     *mydata                |          | int32_t (*get_peername)(rpc_transport_t *, char *, int)             |
-  | pthread_mutex_t          lock                   |          | int32_t (*get_peeraddr)(rpc_transport_t *, char *, int,             |
-  | gf_atomic_t              refcount               |          |                         struct sockaddr_storage *, socklen_t)       |
-  | glusterfs_ctx_t          *ctx                   |          | int32_t (*get_myname)(rpc_transport_t *, char *, int)               |
-  | dict_t                   *options               |          | int32_t (*get_myaddr)(rpc_transport_t *, char *, int,               |
-  | char                     *name                  |          |                       struct sockaddr_storage *, socklen_t)         |
-  | void                     *dnscache              |          | int32_t (*throttle)(rpc_transport_t *, gf_boolean_t)                |
-  | void                     *drc_client            |          \---------------------------------------------------------------------/
+  | void                     *xl                    |          | int32_t (*disconnect)(rpc_transport_t *, gf_boolean_t)              |      rpc_request_info_t
+  | void                     *mydata                |          | int32_t (*get_peername)(rpc_transport_t *, char *, int)             |    /-------------------------------\
+  | pthread_mutex_t          lock                   |          | int32_t (*get_peeraddr)(rpc_transport_t *, char *, int,             |    | int                 prognum   |
+  | gf_atomic_t              refcount               |          |                         struct sockaddr_storage *, socklen_t)       |    | int                 progver   |
+  | glusterfs_ctx_t          *ctx                   |          | int32_t (*get_myname)(rpc_transport_t *, char *, int)               |    | void                *rpc_req  |
+  | dict_t                   *options               |          | int32_t (*get_myaddr)(rpc_transport_t *, char *, int,               |    | rpc_transport_rsp_t rsp       |
+  | char                     *name                  |          |                       struct sockaddr_storage *, socklen_t)         |    | int                 procnum   |
+  | void                     *dnscache              |          | int32_t (*throttle)(rpc_transport_t *, gf_boolean_t)                |    | uint32_t            xid       |
+  | void                     *drc_client            |          \---------------------------------------------------------------------/    \-------------------------------/
   | data_t                   *buf                   |
   | int32_t (*init)(rpc_transport_t *this)          |             rpc_req                                 rpc_transport_msg (rpc_transport_msg_t)
   | void (*fini)(rpc_transport_t *this)             |        /--------------------------------------\    /----------------------------------------\
@@ -71,21 +71,84 @@
   | uid_t            anonuid               |   |     | RPCSVC_EVENT_LISTENER_DEAD     |
   | gid_t            anongid               |   |     \--------------------------------/
   | glusterfs_ctx_t  *ctx                  |   |
-  | struct list_head listeners             |   |
-  | struct list_head programs              |   |
-  | struct list_head notify                |   |
-  | int              notify_count          |   |
-  | unsigned int     memfactor             |   |
-  | xlator_t         *xl                   |   |
-  | void             *mydata               |   |
-  | rpcsvc_notify_t  notifyfn -------------|---/
-  | struct mem_pool  *rxpool               |
-  | rpcsvc_drc_globals_t *drc              |
-  | int              outstanding_rpc_limit |
-  | gf_boolean_t     addr_namelookup       |
-  | gf_boolean_t     throttle              |
+  | struct list_head listeners             |   |        rpc_transport_ops tops
+  | struct list_head programs              |   |   /-----------------------------------------\
+  | struct list_head notify                |   |   | .listen         = socket_listen         |
+  | int              notify_count          |   |   | .connect        = socket_connect        |
+  | unsigned int     memfactor             |   |   | .disconnect     = socket_disconnect     |
+  | xlator_t         *xl                   |   |   | .submit_request = socket_submit_request |
+  | void             *mydata               |   |   | .submit_reply   = socket_submit_reply   |
+  | rpcsvc_notify_t  notifyfn -------------|---/   | .get_peername   = socket_getpeername    |
+  | struct mem_pool  *rxpool               |       | .get_peeraddr   = socket_getpeeraddr    |
+  | rpcsvc_drc_globals_t *drc              |       | .get_myname     = socket_getmyname      |
+  | int              outstanding_rpc_limit |       | .get_myaddr     = socket_getmyaddr      |
+  | gf_boolean_t     addr_namelookup       |       | .throttle       = socket_throttle       |
+  | gf_boolean_t     throttle              |       \-----------------------------------------/
   | gf_boolean_t     allow_insecure        |
   | gf_boolean_t     register_portmap      |
   | gf_boolean_t     root_squash           |
   | gf_boolean_t     all_squash            |
   \----------------------------------------/
+
+
+### Socket related stuff  ################################
+
+     socket_private_t                                    gf_sock_incoming                                       gf_sock_incoming_frag
+  /-----------------------------------------\          /-------------------------------------------------\    /--------------------------------------------\
+  |union {                                  |          | char                         *proghdr_base_addr |    | char         *fragcurrent                  |
+  |     struct list_head ioq                |          | struct iobuf                 *iobuf             |    | uint32_t     bytes_read                    |
+  |     struct {                            |          | size_t                       iobuf_size         |    | uint32_t     remaining_size                |
+  |         struct ioq *ioq_next            |          | struct gf_sock_incoming_frag frag               |    | struct iovec vector                        |
+  |         struct ioq *ioq_prev            |          | struct iovec                 vector[2]          |    | struct iovec *pending_vector               |
+  |     }                                   |          | struct iovec                 payload_vector     |    | union {                                    |
+  | }                                       |          | struct iobref                *iobref            |    |  sp_rpcfrag_request_state_t request        |
+  | pthread_mutex_t     out_lock            |          | rpc_request_info_t           *request_info      |    |  sp_rpcfrag_vectored_reply_state_t reply   |
+  | pthread_mutex_t     cond_lock           |          | struct iovec                 *pending_vector    |    | } call_body;                               |
+  | pthread_cond_t      cond                |          | int                          count              |    | sp_rpcfrag_simple_msg_state_t simple_state |
+  | int                 windowsize          |          | int                          pending_count      |    | sp_rpcfrag_state_t            state        |
+  | int                 keepalive           |          | size_t                       total_bytes_read   |    \--------------------------------------------/
+  | int                 keepaliveidle       |          | size_t                       ra_read            |
+  | int                 keepaliveintvl      |          | size_t                       ra_max             |           sp_rpcfrag_request_state_t
+  | int                 keepalivecnt        |          | size_t                       ra_served          |     /--------------------------------------------------------\
+  | int                 timeout             |          | char                         *ra_buf            |     | sp_rpcfrag_request_header_state_t   header_state       |
+  | int                 log_ctr             |          | uint32_t                     fraghdr            |     | sp_rpcfrag_vectored_request_state_t vector_state       |
+  | int                 shutdown_log_ctr    |          | msg_type_t                   msg_type           |     | int                                 vector_sizer_state |
+  | int                 ssl_error_required  |          | sp_rpcrecord_state_t         record_state       |     \--------------------------------------------------------/
+  | int                 ssl_session_id      |          | char                         _pad[4]            |
+  | GF_REF_DECL                             |          \-------------------------------------------------/
+  | struct {                                |
+  |     pthread_mutex_t lock                |         sp_rpcfrag_vectored_reply_state_t                                                sp_rpcfrag_simple_msg_state_t
+  |     pthread_cond_t  cond                |    /---------------------------------------------------------------------------\        /------------------------------\
+  |     uint64_t        in_progress         |    | Uint32_t                                           accept_status          |        | SP_STATE_SIMPLE_MSG_INIT,    |
+  | } notify;                               |    | sp_rpcfrag_vectored_reply_status_state_t           status_state           |        | SP_STATE_READING_SIMPLE_MSG, |
+  | int32_t             sock                |    | sp_rpcfrag_vectored_reply_accepted_state_t         accepted_state         |        \------------------------------/
+  | int32_t             idx                 |    | sp_rpcfrag_vectored_reply_accepted_success_state_t accepted_success_state |
+  | int32_t             gen                 |    \---------------------------------------------------------------------------/
+  | uint32_t            backlog             |
+  | SSL_METHOD          *ssl_meth           |       sp_rpcfrag_state_t (enum)
+  | SSL_CTX             *ssl_ctx            |      /--------------------------\
+  | BIO                 *ssl_sbio           |      | SP_STATE_RPCFRAG_INIT    |
+  | SSL                 *ssl_ssl            |      | SP_STATE_READING_MSGTYPE |
+  | char                *ssl_own_cert       |      | SP_STATE_READ_MSGTYPE    |
+  | char                *ssl_private_key    |      | SP_STATE_NOTIFYING_XID   |
+  | char                *ssl_ca_list        |      \--------------------------/
+  | char                *crl_path           |
+  | struct gf_sock_incoming incoming        |
+  | mgmt_ssl_t          srvr_ssl            |
+  | char                connected           |
+  | char                connect_failed      |
+  | char                bio                 |
+  | char                connect_finish_log  |
+  | char                submit_log          |
+  | char                nodelay             |
+  | gf_boolean_t        read_fail_log       |
+  | gf_boolean_t        ssl_enabled         |
+  | gf_boolean_t        mgmt_ssl            |
+  | gf_boolean_t        is_server           |
+  | gf_boolean_t        use_ssl             |
+  | gf_boolean_t        ssl_accepted        |
+  | gf_boolean_t        ssl_connected       |
+  | gf_boolean_t        ssl_context_created |
+  | gf_boolean_t        accepted            |
+  | char                _pad[4]             |
+  \-----------------------------------------/
