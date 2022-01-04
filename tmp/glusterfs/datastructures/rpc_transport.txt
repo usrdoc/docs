@@ -44,21 +44,48 @@
   | rpc_transport_t             *trans          |        |  int                  progver     |    | char    authdata[INT]          |   \---------------------/
   | struct rpc_clnt_config      config          |        |  rpc_clnt_procedure_t *proctable  |    \--------------------------------/
   | gf_timer_t                  *reconnect      |        |  char                 **procnames |
-  | gf_timer_t                  *timer          |        |  int                  numproc     |       rpc_clnt_config
-  | gf_timer_t                  *ping_timer     |        \-----------------------------------/     /-------------------\
-  | struct rpc_clnt             *rpc_clnt       |                                                  | int  rpc_timeout  |
-  | struct saved_frames         *saved_frames   |          _gf_timer (gf_timer_t)                  | int  remote_port  |
-  | struct timespec             last_sent       |         /---------------------------------\      | char *remote_host |
-  | struct timespec             last_received   |         | union {                         |      | int  ping_timeout |
-  | uint64_t                    pingcnt         |         |     struct list_head      list  |      \-------------------/
+  | gf_timer_t                  *timer          |        |  int                  numproc     |       rpc_clnt_config                 rpcsvc_listener_t
+  | gf_timer_t                  *ping_timer     |        \-----------------------------------/     /-------------------\          /--------------------------------\
+  | struct rpc_clnt             *rpc_clnt       |                                                  | int  rpc_timeout  |          | rpc_transport_t         *trans |
+  | struct saved_frames         *saved_frames   |          _gf_timer (gf_timer_t)                  | int  remote_port  |          | rpcsvc_t                *svc   |
+  | struct timespec             last_sent       |         /---------------------------------\      | char *remote_host |          | struct sockaddr_storage sa     |
+  | struct timespec             last_received   |         | union {                         |      | int  ping_timeout |          | struct list_head        list   |
+  | uint64_t                    pingcnt         |         |     struct list_head      list  |      \-------------------/          \--------------------------------/
   | uint64_t                    msgcnt          |         |     struct {                    |
-  | uint64_t                    cleanup_gen     |         |         struct _gf_timer *next  |
-  | char                        *name           |         |         struct _gf_timer *prev  |
-  | int32_t                     ping_started    |         |     }                           |
-  | int32_t                     frame_timeout   |         | }                               |
-  | int32_t                     ping_timeout    |         | struct timespec     at          |
-  | gf_boolean_t                disconnected    |         | gf_timer_cbk_t      callbk      |
-  | char                        connected       |         | void                *data       |
-  \---------------------------------------------/         | xlator_t            *xl         |
-                                                          | gf_boolean_t        fired       |
-                                                          \---------------------------------/
+  | uint64_t                    cleanup_gen     |         |         struct _gf_timer *next  |         /---------------------------------------------------------------\
+  | char                        *name           |         |         struct _gf_timer *prev  |  /----->| typedef int (*rpcsvc_notify_t)(struct rpcsvc_state *, void *, |
+  | int32_t                     ping_started    |         |     }                           |  |      |                                   rpcsvc_event_t, void *data) |
+  | int32_t                     frame_timeout   |         | }                               |  |      \---------------------------------------------------------------/
+  | int32_t                     ping_timeout    |         | struct timespec     at          |  |
+  | gf_boolean_t                disconnected    |         | gf_timer_cbk_t      callbk      |  |
+  | char                        connected       |         | void                *data       |  |
+  \---------------------------------------------/         | xlator_t            *xl         |  |
+                                                          | gf_boolean_t        fired       |  |
+                                                          \---------------------------------/  |
+                                               /-----------------------------------------------/
+   rpcsvc_state (rpcsvc_t)                     |          rpcsvc_event_t (enum)
+  /----------------------------------------\   |     /--------------------------------\
+  | pthread_rwlock_t rpclock               |   |     | RPCSVC_EVENT_ACCEPT            |
+  | struct list_head authschemes           |   |     | RPCSVC_EVENT_DISCONNECT        |
+  | dict_t           *options              |   |     | RPCSVC_EVENT_TRANSPORT_DESTROY |
+  | uid_t            anonuid               |   |     | RPCSVC_EVENT_LISTENER_DEAD     |
+  | gid_t            anongid               |   |     \--------------------------------/
+  | glusterfs_ctx_t  *ctx                  |   |
+  | struct list_head listeners             |   |
+  | struct list_head programs              |   |
+  | struct list_head notify                |   |
+  | int              notify_count          |   |
+  | unsigned int     memfactor             |   |
+  | xlator_t         *xl                   |   |
+  | void             *mydata               |   |
+  | rpcsvc_notify_t  notifyfn -------------|---/
+  | struct mem_pool  *rxpool               |
+  | rpcsvc_drc_globals_t *drc              |
+  | int              outstanding_rpc_limit |
+  | gf_boolean_t     addr_namelookup       |
+  | gf_boolean_t     throttle              |
+  | gf_boolean_t     allow_insecure        |
+  | gf_boolean_t     register_portmap      |
+  | gf_boolean_t     root_squash           |
+  | gf_boolean_t     all_squash            |
+  \----------------------------------------/
