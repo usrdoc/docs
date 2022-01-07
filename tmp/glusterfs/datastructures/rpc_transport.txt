@@ -57,23 +57,23 @@
   | int32_t                     ping_started    |         |     }                           |  |      |                                   rpcsvc_event_t, void *data) |
   | int32_t                     frame_timeout   |         | }                               |  |      \---------------------------------------------------------------/
   | int32_t                     ping_timeout    |         | struct timespec     at          |  |
-  | gf_boolean_t                disconnected    |         | gf_timer_cbk_t      callbk      |  |
-  | char                        connected       |         | void                *data       |  |
-  \---------------------------------------------/         | xlator_t            *xl         |  |
-                                                          | gf_boolean_t        fired       |  |
-                                                          \---------------------------------/  |
-                                               /-----------------------------------------------/
+  | gf_boolean_t                disconnected    |         | gf_timer_cbk_t      callbk      |  |    rpcsvc_notify_wrapper_t
+  | char                        connected       |         | void                *data       |  |   /-------------------------\
+  \---------------------------------------------/         | xlator_t            *xl         |  |   | Struct list_head list   |
+                                                          | gf_boolean_t        fired       |  |   | void             *data  |
+                                                          \---------------------------------/  |   | rpcsvc_notify_t  notify |
+                                               /-----------------------------------------------/   \-------------------------/
    rpcsvc_state (rpcsvc_t)                     |          rpcsvc_event_t (enum)
-  /----------------------------------------\   |     /--------------------------------\
-  | pthread_rwlock_t rpclock               |   |     | RPCSVC_EVENT_ACCEPT            |
-  | struct list_head authschemes           |   |     | RPCSVC_EVENT_DISCONNECT        |
-  | dict_t           *options              |   |     | RPCSVC_EVENT_TRANSPORT_DESTROY |
-  | uid_t            anonuid               |   |     | RPCSVC_EVENT_LISTENER_DEAD     |
-  | gid_t            anongid               |   |     \--------------------------------/
-  | glusterfs_ctx_t  *ctx                  |   |
-  | struct list_head listeners             |   |        rpc_transport_ops tops
-  | struct list_head programs              |   |   /-----------------------------------------\
-  | struct list_head notify                |   |   | .listen         = socket_listen         |
+  /----------------------------------------\   |     /--------------------------------\             rpcsvc_request_queue_t
+  | pthread_rwlock_t rpclock               |   |     | RPCSVC_EVENT_ACCEPT            |         /--------------------------------------\
+  | struct list_head authschemes           |   |     | RPCSVC_EVENT_DISCONNECT        |         | struct list_head      request_queue  |
+  | dict_t           *options              |   |     | RPCSVC_EVENT_TRANSPORT_DESTROY |         | pthread_mutex_t       queue_lock     |
+  | uid_t            anonuid               |   |     | RPCSVC_EVENT_LISTENER_DEAD     |         | pthread_cond_t        queue_cond     |
+  | gid_t            anongid               |   |     \--------------------------------/         | pthread_t             thread         |
+  | glusterfs_ctx_t  *ctx                  |   |                                                | struct rpcsvc_program *program       |
+  | struct list_head listeners             |   |        rpc_transport_ops tops                  | int                   gen            |
+  | struct list_head programs              |   |   /-----------------------------------------\  | gf_boolean_t          waiting        |
+  | struct list_head notify                |   |   | .listen         = socket_listen         |  \--------------------------------------/
   | int              notify_count          |   |   | .connect        = socket_connect        |
   | unsigned int     memfactor             |   |   | .disconnect     = socket_disconnect     |
   | xlator_t         *xl                   |   |   | .submit_request = socket_submit_request |
@@ -89,6 +89,37 @@
   | gf_boolean_t     root_squash           |
   | gf_boolean_t     all_squash            |
   \----------------------------------------/
+
+       rpcsvc_program_t
+ /---------------------------------------------------\
+ | char                    progname[int]             |
+ | int                     prognum                   |
+ | int                     progver                   |
+ | dict_t                  *options                  |
+ | int                     progaddrfamily            |
+ | char                    *proghost                 |
+ | rpcsvc_actor_t          *actors                   |
+ | int                     numactors                 |
+ | int                     proghighvers              |
+ | void                    *private                  |
+ | gf_latency_t            *latencies                |
+ | rpcsvc_notify_t         notify                    |
+ | int                     proglowvers               |
+ | int                     min_auth                  |
+ | struct list_head        program                   |
+ | rpcsvc_request_queue_t  request_queue[]           |
+ | pthread_mutex_t         thr_lock                  |
+ | int                     threadcount               |
+ | int                     thr_queue                 |
+ | pthread_key_t           req_queue_key             |
+ | int                     eventthreadcount          |
+ | uint16_t                progport                  |
+ | gf_boolean_t            ownthread                 |
+ | gf_boolean_t            alive                     |
+ | gf_boolean_t            synctask                  |
+ | unsigned long           request_queue_status[int] |
+ \---------------------------------------------------/
+
 
 
 ### Socket related stuff  ################################
