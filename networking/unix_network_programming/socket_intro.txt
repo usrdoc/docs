@@ -1,6 +1,6 @@
                                         Introduction to Sockets
 
-The functions that the socket address structure from the process to the kernel
+The functions that pass the socket address structure from the process to the kernel
     1. bind(2)
     2. connect(2)
     3. sendto(2)
