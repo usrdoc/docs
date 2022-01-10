@@ -1,3 +1,6 @@
+Server related
+=================================================================
+
 server_conf                                  /---------> rpcsvc_state (rpcsvc_t)                       -------->  _glusterfs_ctx
 |----------------------------------------|   |         --------------------------------------------|   |         --------------------------------------------
 |rpcsvc_t             *rpc     ----------|---|         |pthread_rwlock_t     rpclock               |   |         |cmd_args_t          cmd_args              |
@@ -301,3 +304,66 @@ _volfile_ctx  <-------------------------------  |       |char                   
                                            | gf_boolean_t           synctask                   |
                                            | char                   request_queue_status[int]  |
                                            \---------------------------------------------------/
+
+Client related
+===================================================================
+
+     clnt_conf(clnt_conf_t)                                 rpc_clnt_config          clnt_options                rpc_clnt_procedure           rpc_clnt_procedure
+  /----------------------------------------------\      /---------------------\  /--------------------------\  /-----------------------\    /---------------------\
+  | struct rpc_clnt        *rpc                  |      | time_t rpc_timeout  |  | char   *remote_subvolume |  | char      *procname   |    | char      *procname |
+  | struct clnt_options    opt                   |      | int    remote_port  |  | time_t ping_timeout      |  | clnt_fn_t fn          |    | clnt_fn_t fn        |
+  | struct rpc_clnt_config rpc_conf              |      | char   *remote_host |  \--------------------------/  \-----------------------/    \---------------------/
+  | struct list_head       saved_fds             |      | time_t ping_timeout |
+  | pthread_spinlock_t     fd_lock               |      \---------------------/
+  | pthread_mutex_t        lock                  |
+  | int                    connected             |      rpc_clnt (rpc_clnt_t)                              rpc_clnt_program (rpc_clnt_prog_t)      saved_frames
+  | rpc_clnt_prog_t        *fops                 |   /-------------------------------------------\      /----------------------------------\   /---------------------------\
+  | rpc_clnt_prog_t        *mgmt                 |   | pthread_mutex_t        lock               |      | char                 *progname   |   | int64_t            count  |
+  | rpc_clnt_prog_t        *handshake            |   | rpc_clnt_notify_t      notifyfn           |      | int                  prognum     |   | struct saved_frame sf     |
+  | rpc_clnt_prog_t        *dump                 |   | rpc_clnt_connection_t  conn               |      | int                  progver     |   | struct saved_frame lk_sf  |
+  | int                    client_id             |   | void                   *mydata            |      | rpc_clnt_procedure_t *proctable  |   \---------------------------/
+  | uint64_t               reopen_fd_count       |   | gf_atomic_t            xid                |      | char                 **procnames |
+  | gf_lock_t              rec_lock              |   | struct list_head       programs           |      | int                  numproc     |
+  | int                    skip_notify           |   | struct mem_pool        *reqpool           |      \----------------------------------/
+  | int                    last_sent_event       |   | struct mem_pool        *saved_frames_pool |
+  | char                   portmap_err_logged    |   | glusterfs_ctx_t        *ctx               |        rpcclnt_actor_desc
+  | char                   disconnect_err_logged |   | gf_atomic_t            refcount           |        rpcclnt_cb_actor_t
+  | char                   parent_down           |   | xlator_t               *owner             |      /----------------------------\
+  | gf_boolean_t           quick_reconnect       |   | int                    auth_value         |      | char          procname[32] |
+  | gf_boolean_t           filter_o_direct       |   | char                   disabled           |      | rpcclnt_cb_fn actor        |
+  | uint64_t               setvol_count          |   \-------------------------------------------/      | int           procnum      |
+  | gf_boolean_t           send_gids             |                                                      \----------------------------/
+  | int                    event_threads         |     rpcclnt_cb_program
+  | gf_boolean_t           destroy               |   /---------------------------------\
+  | gf_boolean_t           child_up              |   | char               progname[32] |
+  | gf_boolean_t           can_log_disconnect    |   | int                prognum      |
+  | gf_boolean_t           old_protocol          |   | int                progver      |
+  | pthread_cond_t         fini_complete_cond    |   | rpcclnt_cb_actor_t *actors      |
+  | gf_boolean_t           fini_completed        |   | void               *private     |
+  | gf_boolean_t           strict_locks          |   | struct list_head   program      |
+  | gf_boolean_t           connection_to_brick   |   | void               *mydata      |
+  \----------------------------------------------/   | int                numactors    |
+                                                     \---------------------------------/
+    rpc_clnt_connection
+  /---------------------------------------\
+  | pthread_mutex_t        lock           |
+  | pthread_cond_t         cond           |
+  | rpc_transport_t        *trans         |
+  | struct rpc_clnt_config config         |
+  | gf_timer_t             *reconnect     |
+  | gf_timer_t             *timer         |
+  | gf_timer_t             *ping_timer    |
+  | struct rpc_clnt        *rpc_clnt      |
+  | struct saved_frames    *saved_frames  |
+  | time_t                 last_sent      |
+  | time_t                 last_received  |
+  | uint64_t               pingcnt        |
+  | uint64_t               msgcnt         |
+  | uint64_t               cleanup_gen    |
+  | char                   *name          |
+  | int32_t                ping_started   |
+  | time_t                 frame_timeout  |
+  | time_t                 ping_timeout   |
+  | gf_boolean_t           disconnected   |
+  | char                   connected      |
+  \---------------------------------------/

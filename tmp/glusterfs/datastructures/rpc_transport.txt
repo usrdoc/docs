@@ -57,14 +57,14 @@
   | int32_t                     ping_started    |         |     }                           |  |      |                                   rpcsvc_event_t, void *data) |
   | int32_t                     frame_timeout   |         | }                               |  |      \---------------------------------------------------------------/
   | int32_t                     ping_timeout    |         | struct timespec     at          |  |
-  | gf_boolean_t                disconnected    |         | gf_timer_cbk_t      callbk      |  |    rpcsvc_notify_wrapper_t
-  | char                        connected       |         | void                *data       |  |   /-------------------------\
-  \---------------------------------------------/         | xlator_t            *xl         |  |   | Struct list_head list   |
-                                                          | gf_boolean_t        fired       |  |   | void             *data  |
-                                                          \---------------------------------/  |   | rpcsvc_notify_t  notify |
-                                               /-----------------------------------------------/   \-------------------------/
-   rpcsvc_state (rpcsvc_t)                     |          rpcsvc_event_t (enum)
-  /----------------------------------------\   |     /--------------------------------\             rpcsvc_request_queue_t
+  | gf_boolean_t                disconnected    |         | gf_timer_cbk_t      callbk      |  |    rpcsvc_notify_wrapper_t                _data (data_t)
+  | char                        connected       |         | void                *data       |  |   /-------------------------\          /--------------------------------\
+  \---------------------------------------------/         | xlator_t            *xl         |  |   | Struct list_head list   |          | char                *data      |
+                                                          | gf_boolean_t        fired       |  |   | void             *data  |          | gf_atomic_t         refcount   |
+                                                          \---------------------------------/  |   | rpcsvc_notify_t  notify |          | gf_dict_data_type_t data_type  |
+                                               /-----------------------------------------------/   \-------------------------/          | uint32_t            len        |
+   rpcsvc_state (rpcsvc_t)                     |          rpcsvc_event_t (enum)                                                         | uint32_t            is_static  |
+  /----------------------------------------\   |     /--------------------------------\             rpcsvc_request_queue_t              \--------------------------------/
   | pthread_rwlock_t rpclock               |   |     | RPCSVC_EVENT_ACCEPT            |         /--------------------------------------\
   | struct list_head authschemes           |   |     | RPCSVC_EVENT_DISCONNECT        |         | struct list_head      request_queue  |
   | dict_t           *options              |   |     | RPCSVC_EVENT_TRANSPORT_DESTROY |         | pthread_mutex_t       queue_lock     |
@@ -85,20 +85,20 @@
   | gf_boolean_t     addr_namelookup       |       | .throttle       = socket_throttle       |
   | gf_boolean_t     throttle              |       \-----------------------------------------/
   | gf_boolean_t     allow_insecure        |
-  | gf_boolean_t     register_portmap      |
-  | gf_boolean_t     root_squash           |
-  | gf_boolean_t     all_squash            |
-  \----------------------------------------/
-
-       rpcsvc_program_t
- /---------------------------------------------------\
- | char                    progname[int]             |
- | int                     prognum                   |
- | int                     progver                   |
- | dict_t                  *options                  |
- | int                     progaddrfamily            |
- | char                    *proghost                 |
- | rpcsvc_actor_t          *actors                   |
+  | gf_boolean_t     register_portmap      |                  gf_dict_data_type_t
+  | gf_boolean_t     root_squash           |               /---------------------------\
+  | gf_boolean_t     all_squash            |               | GF_DATA_TYPE_UNKNOWN = 0  |
+  \----------------------------------------/               | GF_DATA_TYPE_STR_OLD = 1  |
+                                                           | GF_DATA_TYPE_INT     = 2  |
+       rpcsvc_program_t                                    | GF_DATA_TYPE_UINT    = 3  |
+ /---------------------------------------------------\     | GF_DATA_TYPE_DOUBLE  = 4  |
+ | char                    progname[int]             |     | GF_DATA_TYPE_STR     = 5  |
+ | int                     prognum                   |     | GF_DATA_TYPE_PTR     = 6  |
+ | int                     progver                   |     | GF_DATA_TYPE_GFUUID  = 7  |
+ | dict_t                  *options                  |     | GF_DATA_TYPE_IATT    = 8  |
+ | int                     progaddrfamily            |     | GF_DATA_TYPE_MDATA   = 9  |
+ | char                    *proghost                 |     | GF_DATA_TYPE_MAX     = 10 |
+ | rpcsvc_actor_t          *actors                   |     \---------------------------/
  | int                     numactors                 |
  | int                     proghighvers              |
  | void                    *private                  |
