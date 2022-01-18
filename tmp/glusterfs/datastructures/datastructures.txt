@@ -326,44 +326,57 @@ Client related
   | gf_lock_t              rec_lock              |   | struct list_head       programs           |      | int                  numproc     |
   | int                    skip_notify           |   | struct mem_pool        *reqpool           |      \----------------------------------/
   | int                    last_sent_event       |   | struct mem_pool        *saved_frames_pool |
-  | char                   portmap_err_logged    |   | glusterfs_ctx_t        *ctx               |        rpcclnt_actor_desc
-  | char                   disconnect_err_logged |   | gf_atomic_t            refcount           |        rpcclnt_cb_actor_t
-  | char                   parent_down           |   | xlator_t               *owner             |      /----------------------------\
-  | gf_boolean_t           quick_reconnect       |   | int                    auth_value         |      | char          procname[32] |
-  | gf_boolean_t           filter_o_direct       |   | char                   disabled           |      | rpcclnt_cb_fn actor        |
-  | uint64_t               setvol_count          |   \-------------------------------------------/      | int           procnum      |
-  | gf_boolean_t           send_gids             |                                                      \----------------------------/
-  | int                    event_threads         |     rpcclnt_cb_program
-  | gf_boolean_t           destroy               |   /---------------------------------\
-  | gf_boolean_t           child_up              |   | char               progname[32] |
-  | gf_boolean_t           can_log_disconnect    |   | int                prognum      |
-  | gf_boolean_t           old_protocol          |   | int                progver      |
-  | pthread_cond_t         fini_complete_cond    |   | rpcclnt_cb_actor_t *actors      |
-  | gf_boolean_t           fini_completed        |   | void               *private     |
-  | gf_boolean_t           strict_locks          |   | struct list_head   program      |
-  | gf_boolean_t           connection_to_brick   |   | void               *mydata      |
-  \----------------------------------------------/   | int                numactors    |
-                                                     \---------------------------------/
-    rpc_clnt_connection
-  /---------------------------------------\
-  | pthread_mutex_t        lock           |
-  | pthread_cond_t         cond           |
-  | rpc_transport_t        *trans         |
-  | struct rpc_clnt_config config         |
-  | gf_timer_t             *reconnect     |
-  | gf_timer_t             *timer         |
-  | gf_timer_t             *ping_timer    |
-  | struct rpc_clnt        *rpc_clnt      |
-  | struct saved_frames    *saved_frames  |
-  | time_t                 last_sent      |
-  | time_t                 last_received  |
-  | uint64_t               pingcnt        |
-  | uint64_t               msgcnt         |
-  | uint64_t               cleanup_gen    |
-  | char                   *name          |
-  | int32_t                ping_started   |
-  | time_t                 frame_timeout  |
-  | time_t                 ping_timeout   |
-  | gf_boolean_t           disconnected   |
-  | char                   connected      |
-  \---------------------------------------/
+  | char                   portmap_err_logged    |   | glusterfs_ctx_t        *ctx               |        rpcclnt_actor_desc              rpc_clnt_connection
+  | char                   disconnect_err_logged |   | gf_atomic_t            refcount           |        rpcclnt_cb_actor_t            /---------------------------------------\
+  | char                   parent_down           |   | xlator_t               *owner             |      /----------------------------\  | pthread_mutex_t        lock           |
+  | gf_boolean_t           quick_reconnect       |   | int                    auth_value         |      | char          procname[32] |  | pthread_cond_t         cond           |
+  | gf_boolean_t           filter_o_direct       |   | char                   disabled           |      | rpcclnt_cb_fn actor        |  | rpc_transport_t        *trans         |
+  | uint64_t               setvol_count          |   \-------------------------------------------/      | int           procnum      |  | struct rpc_clnt_config config         |
+  | gf_boolean_t           send_gids             |                                                      \----------------------------/  | gf_timer_t             *reconnect     |
+  | int                    event_threads         |     rpcclnt_cb_program                                                               | gf_timer_t             *timer         |
+  | gf_boolean_t           destroy               |   /---------------------------------\                                                | gf_timer_t             *ping_timer    |
+  | gf_boolean_t           child_up              |   | char               progname[32] |                                                | struct rpc_clnt        *rpc_clnt      |
+  | gf_boolean_t           can_log_disconnect    |   | int                prognum      |                                                | struct saved_frames    *saved_frames  |
+  | gf_boolean_t           old_protocol          |   | int                progver      |                                                | time_t                 last_sent      |
+  | pthread_cond_t         fini_complete_cond    |   | rpcclnt_cb_actor_t *actors      |                                                | time_t                 last_received  |
+  | gf_boolean_t           fini_completed        |   | void               *private     |                                                | uint64_t               pingcnt        |
+  | gf_boolean_t           strict_locks          |   | struct list_head   program      |                                                | uint64_t               msgcnt         |
+  | gf_boolean_t           connection_to_brick   |   | void               *mydata      |                                                | uint64_t               cleanup_gen    |
+  \----------------------------------------------/   | int                numactors    |                                                | char                   *name          |
+                                                     \---------------------------------/                                                | int32_t                ping_started   |
+                                                                                                                                        | time_t                 frame_timeout  |
+                                                                                                                                        | time_t                 ping_timeout   |
+                                                                                                                                        | gf_boolean_t           disconnected   |
+                                                                                                                                        | char                   connected      |
+                                                                                                                                        \---------------------------------------/
+
+=========================================================================================================================
+
+     _gf_async                            _gf_async_control                            syncproc                         syncenv
+  /-----------------------------\       /---------------------------------------\   /----------------------------\   /-----------------------------\
+  | xlator_t              *xl   |       | gf_async_queue_t        queue         |   | pthread_t       processor  |   | struct syncproc  proc[int]  |
+  | gf_async_callback_f   cbk   |       | struct __cds_wfs_stack  available     |   | struct {                   |   | pthread_mutex_t  mutex      |
+  | struct cds_wfcq_node  queue |       | gf_async_worker_t       *table        |   |     void        *fiber     |   | pthread_cond_t   cond       |
+  \-----------------------------/       | pthread_barrier_t       sync          |   |     char        name[int]  |   | struct list_head runq       |
+                                        | pthread_t               sync_thread   |   | } tsan                     |   | struct list_head waitq      |
+     _gf_async_worker                   | sigset_t                sigmask_ctrl  |   | ucontext_t      sched      |   | int              procs      |
+   /------------------------------\     | sigset_t                sigmask_queue |   | struct syncenv  *env       |   | int              procs_idle |
+   | gf_async_t          async    |     | struct sigaction        handler_ctrl  |   | struct synctask *current   |   | int              runcount   |
+   | struct cds_wfs_node stack    |     | struct sigaction        handler_queue |   \----------------------------/   | int              procmin    |
+   | pthread_t           thread   |     | pid_t                   pid           |                                    | int              procmax    |
+   | int32_t             id       |     | uint32_t                max_threads   |                                    | size_t           stacksize  |
+   | bool                running  |     | uint32_t                counts        |                                    | int              destroy    |
+   \------------------------------/     | bool                    enabled       |                                    \-----------------------------/
+                                        \---------------------------------------/
+
+    tvec_base
+ /------------------------------\
+ | pthread_spinlock_t lock      |
+ | pthread_t          runner    |
+ | unsigned long      timer_sec |
+ | struct tvec_root   tv1       |
+ | struct tvec        tv2       |
+ | struct tvec        tv3       |
+ | struct tvec        tv4       |
+ | struct tvec        tv5       |
+ \------------------------------/
