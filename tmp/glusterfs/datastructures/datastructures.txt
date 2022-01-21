@@ -352,31 +352,51 @@ Client related
 
 =========================================================================================================================
 
-     _gf_async                            _gf_async_control                            syncproc                         syncenv
-  /-----------------------------\       /---------------------------------------\   /----------------------------\   /-----------------------------\
-  | xlator_t              *xl   |       | gf_async_queue_t        queue         |   | pthread_t       processor  |   | struct syncproc  proc[int]  |
-  | gf_async_callback_f   cbk   |       | struct __cds_wfs_stack  available     |   | struct {                   |   | pthread_mutex_t  mutex      |
-  | struct cds_wfcq_node  queue |       | gf_async_worker_t       *table        |   |     void        *fiber     |   | pthread_cond_t   cond       |
-  \-----------------------------/       | pthread_barrier_t       sync          |   |     char        name[int]  |   | struct list_head runq       |
-                                        | pthread_t               sync_thread   |   | } tsan                     |   | struct list_head waitq      |
-     _gf_async_worker                   | sigset_t                sigmask_ctrl  |   | ucontext_t      sched      |   | int              procs      |
-   /------------------------------\     | sigset_t                sigmask_queue |   | struct syncenv  *env       |   | int              procs_idle |
-   | gf_async_t          async    |     | struct sigaction        handler_ctrl  |   | struct synctask *current   |   | int              runcount   |
-   | struct cds_wfs_node stack    |     | struct sigaction        handler_queue |   \----------------------------/   | int              procmin    |
+     _gf_async                            _gf_async_control                            syncproc                         syncenv                          tvec_base
+  /-----------------------------\       /---------------------------------------\   /----------------------------\   /-----------------------------\  /------------------------------\
+  | xlator_t              *xl   |       | gf_async_queue_t        queue         |   | pthread_t       processor  |   | struct syncproc  proc[int]  |  | pthread_spinlock_t lock      |
+  | gf_async_callback_f   cbk   |       | struct __cds_wfs_stack  available     |   | struct {                   |   | pthread_mutex_t  mutex      |  | pthread_t          runner    |
+  | struct cds_wfcq_node  queue |       | gf_async_worker_t       *table        |   |     void        *fiber     |   | pthread_cond_t   cond       |  | unsigned long      timer_sec |
+  \-----------------------------/       | pthread_barrier_t       sync          |   |     char        name[int]  |   | struct list_head runq       |  | struct tvec_root   tv1       |
+                                        | pthread_t               sync_thread   |   | } tsan                     |   | struct list_head waitq      |  | struct tvec        tv2       |
+     _gf_async_worker                   | sigset_t                sigmask_ctrl  |   | ucontext_t      sched      |   | int              procs      |  | struct tvec        tv3       |
+   /------------------------------\     | sigset_t                sigmask_queue |   | struct syncenv  *env       |   | int              procs_idle |  | struct tvec        tv4       |
+   | gf_async_t          async    |     | struct sigaction        handler_ctrl  |   | struct synctask *current   |   | int              runcount   |  | struct tvec        tv5       |
+   | struct cds_wfs_node stack    |     | struct sigaction        handler_queue |   \----------------------------/   | int              procmin    |  \------------------------------/
    | pthread_t           thread   |     | pid_t                   pid           |                                    | int              procmax    |
    | int32_t             id       |     | uint32_t                max_threads   |                                    | size_t           stacksize  |
    | bool                running  |     | uint32_t                counts        |                                    | int              destroy    |
    \------------------------------/     | bool                    enabled       |                                    \-----------------------------/
                                         \---------------------------------------/
 
-    tvec_base
- /------------------------------\
- | pthread_spinlock_t lock      |
- | pthread_t          runner    |
- | unsigned long      timer_sec |
- | struct tvec_root   tv1       |
- | struct tvec        tv2       |
- | struct tvec        tv3       |
- | struct tvec        tv4       |
- | struct tvec        tv5       |
- \------------------------------/
+    synctask                               synccond                     syncproc
+/----------------------------------\    /-------------------------\  /---------------------\
+| struct list_head     all_tasks   |    | pthread_mutex_t  pmutex |  | pthread_t processor |
+| struct syncenv       *env        |    | pthread_cond_t   pcond  |  | struct              |
+| xlator_t             *xl         |    | struct list_head waitq  |  |     void *fiber     |
+| call_frame_t         *frame      |    \-------------------------/  |     char name[int]  |
+| call_frame_t         *opframe    |                                 \---------------------/
+| synctask_cbk_t       synccbk     |
+| synctask_fn_t        syncfn      |
+| struct timespec      *delta      |
+| gf_timer_t           *timer      |
+| struct synccond      *synccond   |
+| void                 *opaque     |
+| void                 *stack      |
+| synctask_state_t     state       |
+| int                  woken       |
+| int                  slept       |
+| int                  ret         |
+| uid_t                uid         |
+| gid_t                gid         |
+| struct {                         |
+|     void            *fiber       |
+|     char            name[int]    |
+| } tsan                           |
+| ucontext_t          ctx          |
+| struct syncproc     *proc        |
+| pthread_mutex_t     mutex        |
+| pthread_cond_t      cond         |
+| int                 done         |
+| struct list_head    waitq        |
+\----------------------------------/
