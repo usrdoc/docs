@@ -97,6 +97,17 @@ TCP Connection Establishment and Termination
     Passive Open: Server must be prepared to accept incoming connection. Usually
                   done by the socket(2), bind(2), and listen(2) calls.
 
+     CLIENT                                               SERVER
+       |                                                     | socket, bind,
+       |   (1) SYN J                                         | listen. (passive
+       |---------------------------------------------------->|          open)
+       |                 (2) SYN K, ACK J+1                  |
+       |<----------------------------------------------------|
+       |        (3) ACK K+1                                  |
+       |---------------------------------------------------->|
+       |                                                     |
+
+
     Active Open:  Client issues an active open by calling connect(2). This is
                   the three-way handshake The
                   following sequence of events happen when connect is called:
