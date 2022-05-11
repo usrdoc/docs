@@ -1,0 +1,46 @@
+                             GlusterFS Build System
+
+This document tries to explain the GlusterFS build system.
+
+After downloading the GlusterFS source code from git or from any other source
+follow the below steps to build from source:
+
+1. ./autogen.sh
+2. ./configure <with a prefix, if installation path has to be different than
+                standard path.>
+3. make
+4. make install
+
+Under the hood
+--------------
+When autogen is run, it checks if all the dependencies are installed and runs
+the following commands:
+
+* aclocal -I ./contrib/aclocal
+* autoheader
+* glibtoolize --automake --copy --force
+* autoconf
+* automake --add-missing --force-missing --copy
+
+Aclocal:
+  * The aclocal command generates aclocal.m4 in the glusterfs/ directory. This
+    file is consumed my autoconf. autoconf will fail with multiple `undefined
+    macro' errors if aclocal is not run, and subsequently automake will fail.
+
+  * The aclocal program will automatically generate aclocal.m4 files based on
+    the contents of configure.ac. This provides a convenient way to get
+    Automake-provided macros, without having to search around.
+
+  * At startup, aclocal scans all the .m4 files it can find (search path given
+    by -I), looking for macro definitions. Then it scans configure.ac. Any
+    mention of one of the macros found in the first step causes that macro, and
+    any macros it in turn requires, to be put into aclocal.m4.
+
+  * The ones found by searching the -I path, are placed at the bottom of
+    aclocal.m4 with the directive m4_include for example:
+               - m4_include([contrib/aclocal/mkdirp.m4])
+               - m4_include([contrib/aclocal/python.m4])
+
+
+Autoheader
+----------

@@ -1,0 +1,22 @@
+                     Understanding the daemonize() function
+
+glusterfs_pidfile_setup(ctx)
+    Just open the ctx->cmd_args->pid_file and store the FILE pointer in
+    ctx->pidfp.
+
+Creates a pipe (ctx->daemon_pipe)
+    Where (ctx->daemon_pipe: int daemon_pipe[2])
+    
+
+If --no-daemon or --debug option is provided, the pid file updated (if
+provided), timer event is created, and signals are setup.
+
+The functions gf_log_inject_timer_event() and glusterfs_signals_setup create two
+threads:
+
+1. timer event thread, which runs the function: gf_timer_proc(void *data)
+     This thread flushes the log after every 120ms and restarts the thread.
+2. signals thread, which runs the function: glusterfs_sigwaiter(void *arg)
+     Sets up signals and waits forever for SIGUSR1, SIGUSR2, SIGINT, ...
+
+

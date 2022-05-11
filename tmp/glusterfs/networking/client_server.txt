@@ -1,0 +1,69 @@
+GlusterFS uses a combination of RPC and low level socket programming for its
+network communication.
+
+It begins with parsing the volume file which looks like this:
+
+          volume net-server
+              type protocol/server
+              <... snip ...>
+              option transport.address-family inet
+              option transport-type tcp
+          end-volume
+
+glusterfsd parses the volume file, and eventually locates the protocol/server.so
+and calls server_init().
+
+At highlevel, the following function calls are made to bring up the server:
+    server_init()
+        (How are event threads configured?)
+        server_build_config() [Fill in the server_conf structure]
+        ... [validations]
+            <rpc-related-stuff>*
+        rpcsvc_init() [Fill in the rpcsvc_t structure]
+        rpcsvc_set_outstanding_rpc_limit() [rpcsvc_t struct update]
+        rpcsvc_create_listeners()
+            rpcsvc_create_listener()  ### [This is where socket is created]
+                rpc_transport_load()  ### [loads rpc-transport/socket.so]
+                   -> calls socket_init()
+                rpc_transport_listen()
+                   -> calls socket_listen() ### Calls sys_socket
+                        -> sys_socket() ### Create and configure socket
+                            -> __socket_nodelay()
+                            -> __socket_nonblock()
+                            -> __socket_server_bind()
+                        -> listen()             ### port 24007 is alive
+                        -> gf_event_register() #### Registers
+                                                    socket_server_event_handler
+                                               ### if fail: close socket & exit
+
+And the following function calls are made to make a client connection:
+    client.c: init()
+                     [Configure event threads (More about this?)]
+              build_client_config() [Fill the clnt_conf_t struct]
+                     GF_OPTION_INIT [frame/remote-port/ping/-(timeout)]
+                     GF_OPTION_INIT [remote-subvolume **]
+                     conf->client_id [glusterfs_leaf_position]
+                     client_check_remote_host()
+              mem_pool_new()
+              client_init_rpc [**]
+                     rpc_clnt_new()
+                         |  --- Basic book-keeping
+                         |  rpc_clnt_connection_init()
+                         |  |  rpc_transport_load() [See server trace above]
+                         |  |     --> calls socket_init()
+                         |  |  rpc_transport_ref()
+                         |  |  rpc_transport_register_notify()
+                         |- rpc_clnt_ref()
+                     rpc_clnt_register_notify()
+                     rpcclnt_cbk_program_register()
+
+              glusterfs_graph_parent_up()
+                    - xlator_notify()
+                          - rpc_clnt_start() brings things to life
+                               - rpc_clnt_reconnect()
+                                  - rpc_transport_connect()
+                                      - socket_connect()
+                                          - client_bind()
+                                              - bind()
+                                              - connect()
+                          - gf_event_register() (?)
