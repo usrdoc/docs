@@ -96,9 +96,9 @@ main(void)
 ```
 
 * What does this mean?
-  `bar' does not become a `const' by assignment. And manipulation of storage
-  pointed to by `bar' is perfectly legal. Also `foo' does not become an
-  unqualified variable by assignment. The storage pointed to by `foo' is still
+  'bar' does not become a 'const' by assignment. And manipulation of storage
+  pointed to by 'bar' is perfectly legal. Also 'foo' does not become an
+  unqualified variable by assignment. The storage pointed to by 'foo' is still
   read-only.
 
 Now consider another example.
@@ -121,5 +121,5 @@ main(void)
 }
 ```
 
-However since `bar' and `foo' point to same location, we can do the
-manipulations to the same memory location pointed to by `foo'. :-|
+However since 'bar' and 'foo' point to same location, we can do the
+manipulations to the same memory location pointed to by 'foo'. :-|
