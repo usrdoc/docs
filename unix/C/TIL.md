@@ -1,6 +1,6 @@
 Some quirks
 
-TIL that `default:' in a switch can happen anywhere. Not necessarily at the
+TIL that 'default:' in a switch can happen anywhere. Not necessarily at the
 end. For example the below switch is perfectly legal.
 
 ```
