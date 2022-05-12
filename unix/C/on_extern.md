@@ -23,3 +23,5 @@ to restrict the visibility of the function name, the static keyword is
 necessary. Prefixing the function name with static makes it visible only in that
 object file.
 
+Also note that use of static on a variable inside a function makes it retain its
+value between the calls.
