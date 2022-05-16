@@ -4,7 +4,7 @@ Using precedence rule
 Consider a couple of declarations:
 
 Example 1:
-
+```
    char* const *(*next)();
    ___________ |   |    |
        |       |  (1)  (2)
@@ -22,7 +22,7 @@ Example 1:
        |
        \--------(Finally take "char * const", as constant pointer to a
                  character)
-
+```
 
 Putting (1), (2), (3), and (4) together we get
 
@@ -31,7 +31,7 @@ pointer-to-char".
 
 
 Example 2:
-
+```
    char *(*c[10])(int **p);
     (3)   ------      |
              |        |
@@ -44,7 +44,7 @@ Example 2:
              |
              \---- (c is an array[0..9] of pointer to a function returning a
                     pointer-to-char)
-
+```
 Or more specifically:
 
 c is an array[0..9] of pointer to a function returning a pointer-to-char and the
