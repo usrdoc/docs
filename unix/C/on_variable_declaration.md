@@ -49,3 +49,18 @@ Or more specifically:
 
 c is an array[0..9] of pointer to a function returning a pointer-to-char and the
 function takes `pointer to array of integers` as the parameter.
+
+Example 3:
+
+```
+   void (*signal(int sig, void (*func)(int))) (int);
+    |    |  |
+    |    | (1)
+    |    |  |
+    |    |  |
+    |    |  \------- (signal is a function with two arguments)
+    |   (2)
+    |    |
+    |    \------------ (signal retuns a pointer to a function, which doesn't
+    \------------------ return anything (void), it takes one int parameter)
+```
