@@ -48,4 +48,4 @@ Example 2:
 Or more specifically:
 
 c is an array[0..9] of pointer to a function returning a pointer-to-char and the
-function takes pointer to array of integers.
+function takes `pointer to array of integers` as the parameter.
