@@ -23,3 +23,4 @@ end. For example the below switch is perfectly legal.
     }
 
 ```
+But don't do that, follow the convention.
