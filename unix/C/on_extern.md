@@ -6,12 +6,12 @@ elsewhere (but note that this has got nothing to do with function
 declarations).
 
 For example:
-    If you want to use errno to print the error message the declaration 'extern
-    int errno;' is not necessary in programs where '<errno.h>' is included, This
-    declaration is taken care by 'errno.h'. If 'errno.h' is not included, then
-    'extern int errno;' is required (on most systems. On linux compilation
+    If you want to use errno to print the error message the declaration ```extern
+    int errno;``` is not necessary in programs where '<errno.h>' is included, This
+    declaration is taken care by ```errno.h```. If ```errno.h``` is not included, then
+    ```extern int errno;``` is required (Works on most systems. On linux, compilation
     errors out. You are forced to include errno.h). However, if the program
-    wants to use any of EXXXX constants, then there is no escape from 'errno.h'.
+    wants to use any of EXXXX constants, then there is no escape from ```errno.h```.
 
 extern with functions
 ---------------------
