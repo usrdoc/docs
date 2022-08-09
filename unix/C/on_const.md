@@ -49,7 +49,7 @@ main(void)
 }
 ```
 
-Consider another example with char *
+Consider another example, this time with char *
 
 ```
 int
