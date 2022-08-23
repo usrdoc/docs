@@ -1,0 +1,7 @@
+Dummy device driver. This driver doesn't do much, it is just an
+illustration of the driver layout. And the compilation process.
+
+The examples are taken verbatim from the document
+https://docs.oracle.com/cd/E26502_01/html/E35300/. Slight modification
+are made to compile and load on illumos.
+
